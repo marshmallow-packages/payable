@@ -1,0 +1,36 @@
+{
+    "name": "marshmallow/payable",
+    "description": "This package will make it possible to accept payments on all our laravel resources. This was orignaly build for our e-commerce package but can be used on anything.",
+    "keywords": ["marshmallow", "laravel", "payments", "payable"],
+    "homepage": "https://github.com/Marshmallow-Development/",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Stef",
+            "email": "stef@marshmallow.dev",
+            "homepage": "https://marshmallow.dev",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "email": "stef@marshmallow.dev"
+    },
+    "minimum-stability": "dev",
+    "require": {
+        "php": "^7.4"
+    },
+    "autoload": {
+        "psr-4": {"Marshmallow\\Payable\\": "src"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Marshmallow\\Payable\\": "src"}
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Marshmallow\\Payable\\PayableServiceProvider"
+            ]
+        }
+    }
+}
