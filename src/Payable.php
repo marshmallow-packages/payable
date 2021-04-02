@@ -2,7 +2,13 @@
 
 namespace Marshmallow\Payable;
 
-class PayableServiceProvider
+use Marshmallow\Payable\Providers\Mollie;
+use Marshmallow\Payable\Providers\Provider;
+
+class Payable
 {
-    //
+    public function getProvider(): Provider
+    {
+        return new Mollie;
+    }
 }

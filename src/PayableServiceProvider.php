@@ -13,9 +13,9 @@ class PayableServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->mergeConfigFrom(
-            __DIR__.'/../config/payable.php',
+            __DIR__ . '/../config/payable.php',
             'payable'
         );
     }
@@ -30,10 +30,10 @@ class PayableServiceProvider extends ServiceProvider
         /**
          * Routes
          */
-        $this->loadRoutesFrom(__DIR__.'/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/routes.php');
 
         $this->publishes([
-            __DIR__.'/../config/payable.php' => config_path('payable.php'),
+            __DIR__ . '/../config/payable.php' => config_path('payable.php'),
         ]);
     }
 }

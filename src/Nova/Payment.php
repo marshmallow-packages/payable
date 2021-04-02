@@ -9,6 +9,8 @@ use Laravel\Nova\Fields\DateTime;
 
 class Payment extends Resource
 {
+    public static $priority = 30;
+
     /**
      * The model the resource corresponds to.
      *
@@ -23,6 +25,16 @@ class Payment extends Resource
      */
     public static $title = 'name';
 
+    public static function label()
+    {
+        return __('Payments');
+    }
+
+    public static function singularLabel()
+    {
+        return __('Payment');
+    }
+
     /**
      * The columns that should be searched.
      *
@@ -34,7 +46,7 @@ class Payment extends Resource
 
     public static $group = 'Payments';
 
-    public static $group_icon = '<svg class="sidebar-icon" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="icon-shape"><path fill="var(--sidebar-icon)" d="M10,20 C15.5228475,20 20,15.5228475 20,10 C20,4.4771525 15.5228475,0 10,0 C4.4771525,0 0,4.4771525 0,10 C0,15.5228475 4.4771525,20 10,20 Z M11,15 L11,17 L9,17 L9,15 L6,15 L6,13 L10.5838882,13 L11.9970707,13 C12.5621186,13 13,12.5522847 13,12 C13,11.4438648 12.5509732,11 11.9970707,11 L10.5838882,11 L8,11 C6.34314575,11 5,9.65685425 5,8 C5,6.34314575 6.34314575,5 8,5 L9,5 L9,3 L11,3 L11,5 L14,5 L14,7 L9.41464715,7 L7.99077797,7 C7.45097518,7 7,7.44771525 7,8 C7,8.55613518 7.44358641,9 7.99077797,9 L9.41464715,9 L12,9 C13.6568542,9 15,10.3431458 15,12 C15,13.6568542 13.6568542,15 12,15 L11,15 Z"></path></g></g></svg>';
+    public static $group_icon = '<svg class="sidebar-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><path fill="var(--sidebar-icon)" d="M22 34h4v-2h2c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2h-6v-2h8v-4h-4v-2h-4v2h-2c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h6v2h-8v4h4v2zM40 8H8c-2.21 0-3.98 1.79-3.98 4L4 36c0 2.21 1.79 4 4 4h32c2.21 0 4-1.79 4-4V12c0-2.21-1.79-4-4-4zm0 28H8V12h32v24z"/></svg>';
 
     /**
      * Get the fields displayed by the resource.
@@ -45,9 +57,9 @@ class Payment extends Resource
     public function fields(Request $request)
     {
         return [
-            MorphTo::make('Payments', 'payable')->types(
-                config('payable.nova.resources')
-            ),
+            MorphTo::make('Payments', 'payable')->types([
+                config('payable.nova.resources.payment')
+            ]),
             DateTime::make('Valid from'),
             DateTime::make('Valid till'),
         ];
