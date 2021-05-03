@@ -5,15 +5,20 @@ namespace Marshmallow\Payable\Providers;
 use Exception;
 use Illuminate\Http\Request;
 use Marshmallow\Payable\Models\Payment;
+use Marshmallow\Payable\Facades\Payable;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
 class Mollie extends Provider implements PaymentProviderContract
 {
-    public function createPayment()
+    public function createPayment($api_key = null)
     {
-        return MollieApi::api()->payments->create([
+        $api = MollieApi::api();
+        if ($api_key) {
+            $api->setApiKey($api_key);
+        }
+        return $api->payments->create([
             'amount' => [
                 'currency' => $this->getCurrencyIso4217Code(),
                 'value' => $this->formatCentToDecimalString(),
@@ -79,9 +84,14 @@ class Mollie extends Provider implements PaymentProviderContract
         }
     }
 
+    public function getPaymentStatus(Payment $payment)
+    {
+        return MollieApi::api()->payments->get($payment->provider_id);
+    }
+
     protected function handleResponse(Payment $payment)
     {
-        $payment = MollieApi::api()->payments->get($payment->provider_id);
+        $payment = $this->getPaymentStatus($payment);
         $status = $this->convertStatus($payment->status);
         $paid_amount = intval(floatval($payment->amount->value) * 100);
         return new PaymentStatusResponse($status, $paid_amount);
@@ -95,5 +105,47 @@ class Mollie extends Provider implements PaymentProviderContract
          */
         $payable_amount = $this->getPayableAmount();
         return number_format($payable_amount / 100, 2, '.', '');
+    }
+
+    protected function getCanceledAt(Payment $payment)
+    {
+        $info = $this->getPaymentInfoFromTheProvider($payment);
+        return $info->canceledAt;
+    }
+
+    protected function getExpiresAt(Payment $payment)
+    {
+        $info = $this->getPaymentInfoFromTheProvider($payment);
+        return $info->expiresAt;
+    }
+
+    protected function getFailedAt(Payment $payment)
+    {
+        $info = $this->getPaymentInfoFromTheProvider($payment);
+        return $info->failedAt;
+    }
+
+    protected function getPaidAt(Payment $payment)
+    {
+        $info = $this->getPaymentInfoFromTheProvider($payment);
+        return $info->paidAt;
+    }
+
+    protected function getConsumerName(Payment $payment)
+    {
+        $info = $this->getPaymentInfoFromTheProvider($payment);
+        return $info->details->consumerName;
+    }
+
+    protected function getConsumerAccount(Payment $payment)
+    {
+        $info = $this->getPaymentInfoFromTheProvider($payment);
+        return $info->details->consumerAccount;
+    }
+
+    protected function getConsumerBic(Payment $payment)
+    {
+        $info = $this->getPaymentInfoFromTheProvider($payment);
+        return $info->details->consumerBic;
     }
 }

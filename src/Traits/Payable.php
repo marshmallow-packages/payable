@@ -14,13 +14,13 @@ trait Payable
         return true;
     }
 
-    public function startPayment(PaymentType $paymentType, $testPayment = null)
+    public function startPayment(PaymentType $paymentType, $testPayment = null, $pay_key = null)
     {
         if (!$this->paymentAllowed()) {
             throw new Exception("Payment is not allowed at this point");
         }
         $provider = PayableHelper::getProvider();
-        return $provider->preparePayment($this, $paymentType, $testPayment);
+        return $provider->preparePayment($this, $paymentType, $testPayment, $pay_key);
     }
 
     public function payments()

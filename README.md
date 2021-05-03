@@ -45,6 +45,14 @@ Add the `Payable` trait to your model that should support payments.
 -   [ ] Simple checkout
 -   [ ] Complex checkout
 
+### Tests
+
+Test mollie simple checkout
+
+```php
+\Marshmallow\Payable\Facades\PayableTest::mollie($test = false, $api_key = 'live_xxxx');
+```
+
 ## Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.

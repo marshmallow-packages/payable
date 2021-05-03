@@ -6,6 +6,7 @@ use ReflectionClass;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
+use Marshmallow\Payable\Facades\Payable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
@@ -25,6 +26,10 @@ class Payment extends Model
     protected $casts = [
         'started' => 'datetime',
         'status_changed_at' => 'datetime',
+        'canceled_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'failed_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     public function logCallback(Request $request)
