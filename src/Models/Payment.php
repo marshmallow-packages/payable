@@ -38,21 +38,6 @@ class Payment extends Model
         'paid_at' => 'datetime',
     ];
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::created(function ($payment) {
-            $payment->triggerStatusEvent();
-        });
-
-        static::updated(function ($payment) {
-            if ($payment->isDirty('status')) {
-                $payment->triggerStatusEvent();
-            }
-        });
-    }
-
     public function logCallback(Request $request)
     {
         $this->webhooks()->create([
@@ -148,6 +133,16 @@ class Payment extends Model
     protected static function boot()
     {
         parent::boot();
+
+        static::created(function ($payment) {
+            $payment->triggerStatusEvent();
+        });
+
+        static::updated(function ($payment) {
+            if ($payment->isDirty('status')) {
+                $payment->triggerStatusEvent();
+            }
+        });
 
         static::creating(function ($payment) {
             if (empty($payment->{$payment->getKeyName()})) {
