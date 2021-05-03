@@ -8,6 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
 use Marshmallow\Payable\Facades\Payable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Marshmallow\Payable\Events\PaymentStatusOpen;
+use Marshmallow\Payable\Events\PaymentStatusPaid;
+use Marshmallow\Payable\Events\PaymentStatusFailed;
+use Marshmallow\Payable\Events\PaymentStatusExpired;
+use Marshmallow\Payable\Events\PaymentStatusUnknown;
+use Marshmallow\Payable\Events\PaymentStatusCanceled;
 
 class Payment extends Model
 {
@@ -32,6 +38,21 @@ class Payment extends Model
         'paid_at' => 'datetime',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($payment) {
+            $payment->triggerStatusEvent();
+        });
+
+        static::updated(function ($payment) {
+            if ($payment->isDirty('status')) {
+                $payment->triggerStatusEvent();
+            }
+        });
+    }
+
     public function logCallback(Request $request)
     {
         $this->webhooks()->create([
@@ -41,6 +62,48 @@ class Payment extends Model
             'status' => app('Illuminate\Http\Response')->status(),
             'return_ip' => $request->ip(),
         ]);
+    }
+
+    public function triggerStatusEvent()
+    {
+        if ($this->isOpen()) {
+            event(new PaymentStatusOpen($this));
+        } elseif ($this->isPaid()) {
+            event(new PaymentStatusPaid($this));
+        } elseif ($this->isFailed()) {
+            event(new PaymentStatusFailed($this));
+        } elseif ($this->isCanceled()) {
+            event(new PaymentStatusCanceled($this));
+        } elseif ($this->isExpired()) {
+            event(new PaymentStatusExpired($this));
+        } else {
+            event(new PaymentStatusUnknown($this));
+        }
+    }
+
+    public function isOpen()
+    {
+        return $this->status === self::STATUS_OPEN;
+    }
+
+    public function isPaid()
+    {
+        return $this->status === self::STATUS_PAID;
+    }
+
+    public function isFailed()
+    {
+        return $this->status === self::STATUS_FAILED;
+    }
+
+    public function isCanceled()
+    {
+        return $this->status === self::STATUS_CANCELED;
+    }
+
+    public function isExpired()
+    {
+        return $this->status === self::STATUS_EXPIRED;
     }
 
     public static function getKnownStatusses(): array

@@ -22,6 +22,17 @@ php artisan marshmallow:resource PaymentProvider Payable
 php artisan marshmallow:resource PaymentType Payable
 ```
 
+## Events
+
+```php
+PaymentStatusOpen::class
+PaymentStatusPaid::class
+PaymentStatusFailed::class
+PaymentStatusCanceled::class
+PaymentStatusExpired::class
+PaymentStatusUnknown::class
+```
+
 ## Usage
 
 ```env
