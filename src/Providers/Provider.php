@@ -53,8 +53,22 @@ class Provider
 
         $this->handleStatusResponse($response, $payment, $request);
 
+        if ($payment->isOpen()) {
+            $route_name = config('payable.routes.payment_open');
+        } elseif ($payment->isPaid()) {
+            $route_name = config('payable.routes.payment_paid');
+        } elseif ($payment->isFailed()) {
+            $route_name = config('payable.routes.payment_failed');
+        } elseif ($payment->isCanceled()) {
+            $route_name = config('payable.routes.payment_canceled');
+        } elseif ($payment->isExpired()) {
+            $route_name = config('payable.routes.payment_expired');
+        } else {
+            $route_name = config('payable.routes.payment_unknown');
+        }
+
         return redirect()->route(
-            config('payable.routes.payment_success'),
+            $route_name,
             [
                 'status' => $response->getStatus(),
             ]
