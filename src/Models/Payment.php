@@ -14,6 +14,7 @@ use Marshmallow\Payable\Events\PaymentStatusFailed;
 use Marshmallow\Payable\Events\PaymentStatusExpired;
 use Marshmallow\Payable\Events\PaymentStatusUnknown;
 use Marshmallow\Payable\Events\PaymentStatusCanceled;
+use Marshmallow\Payable\Events\PaymentStatusRefunded;
 
 class Payment extends Model
 {
@@ -24,6 +25,7 @@ class Payment extends Model
     const STATUS_FAILED = 'failed';
     const STATUS_CANCELED = 'canceled';
     const STATUS_EXPIRED = 'expired';
+    const STATUS_REFUNDED = 'refunded';
 
     protected $table = 'payments';
 
@@ -61,6 +63,8 @@ class Payment extends Model
             event(new PaymentStatusCanceled($this));
         } elseif ($this->isExpired()) {
             event(new PaymentStatusExpired($this));
+        } elseif ($this->isRefunded()) {
+            event(new PaymentStatusRefunded($this));
         } else {
             event(new PaymentStatusUnknown($this));
         }
@@ -89,6 +93,11 @@ class Payment extends Model
     public function isExpired()
     {
         return $this->status === self::STATUS_EXPIRED;
+    }
+
+    public function isRefunded()
+    {
+        return $this->status === self::STATUS_REFUNDED;
     }
 
     public static function getKnownStatusses(): array

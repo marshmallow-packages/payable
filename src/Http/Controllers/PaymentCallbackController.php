@@ -14,14 +14,14 @@ class PaymentCallbackController extends Controller
     public function return($payment_id, Request $request): RedirectResponse
     {
         $payment = $this->guard($payment_id, $request);
-        $provider = Payable::getProvider();
+        $provider = Payable::getProvider($payment->type);
         return $provider->handleReturn($payment, $request);
     }
 
     public function webhook($payment_id, Request $request): JsonResponse
     {
         $payment = $this->guard($payment_id, $request);
-        $provider = Payable::getProvider();
+        $provider = Payable::getProvider($payment->type);
         return $provider->handleWebhook($payment, $request);
     }
 

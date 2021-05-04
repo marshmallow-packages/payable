@@ -114,6 +114,7 @@ class Provider
             'consumer_name' => $this->getConsumerName($payment),
             'consumer_account' => $this->getConsumerAccount($payment),
             'consumer_bic' => $this->getConsumerBic($payment),
+            'payment_type_name' => $this->getPaymentTypeName($payment),
         ]);
     }
 
@@ -125,6 +126,11 @@ class Provider
     protected function getPayableDescription(): string
     {
         return $this->payableModel->getPayableDescription();
+    }
+
+    protected function getPayableIdentifier()
+    {
+        return $this->payableModel->id;
     }
 
     protected function isTestPayment($testPayment = null): bool
@@ -185,7 +191,7 @@ class Provider
         /**
          * Get the raw status of the payment from the payment provider.
          */
-        $provider = Payable::getProvider();
+        $provider = Payable::getProvider($payment->type);
 
         /**
          * Store the result so we don't have to get this infromation

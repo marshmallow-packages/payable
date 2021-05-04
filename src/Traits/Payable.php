@@ -19,7 +19,7 @@ trait Payable
         if (!$this->paymentAllowed()) {
             throw new Exception("Payment is not allowed at this point");
         }
-        $provider = PayableHelper::getProvider();
+        $provider = PayableHelper::getProvider($paymentType);
         return $provider->preparePayment($this, $paymentType, $testPayment, $pay_key);
     }
 

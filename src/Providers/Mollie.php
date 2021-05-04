@@ -3,6 +3,7 @@
 namespace Marshmallow\Payable\Providers;
 
 use Exception;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Marshmallow\Payable\Models\Payment;
 use Marshmallow\Payable\Facades\Payable;
@@ -89,7 +90,7 @@ class Mollie extends Provider implements PaymentProviderContract
         return MollieApi::api()->payments->get($payment->provider_id);
     }
 
-    protected function handleResponse(Payment $payment)
+    public function handleResponse(Payment $payment): PaymentStatusResponse
     {
         $payment = $this->getPaymentStatus($payment);
         $status = $this->convertStatus($payment->status);
@@ -97,7 +98,7 @@ class Mollie extends Provider implements PaymentProviderContract
         return new PaymentStatusResponse($status, $paid_amount);
     }
 
-    protected function formatCentToDecimalString(): string
+    public function formatCentToDecimalString(): string
     {
         /**
          * Mollie says;
@@ -107,45 +108,51 @@ class Mollie extends Provider implements PaymentProviderContract
         return number_format($payable_amount / 100, 2, '.', '');
     }
 
-    protected function getCanceledAt(Payment $payment)
+    public function getCanceledAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
-        return $info->canceledAt;
+        return Carbon::parse($info->canceledAt);
     }
 
-    protected function getExpiresAt(Payment $payment)
+    public function getExpiresAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
-        return $info->expiresAt;
+        return Carbon::parse($info->expiresAt);
     }
 
-    protected function getFailedAt(Payment $payment)
+    public function getFailedAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
-        return $info->failedAt;
+        return Carbon::parse($info->failedAt);
     }
 
-    protected function getPaidAt(Payment $payment)
+    public function getPaidAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
-        return $info->paidAt;
+        return Carbon::parse($info->paidAt);
     }
 
-    protected function getConsumerName(Payment $payment)
+    public function getConsumerName(Payment $payment): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
         return $info->details->consumerName;
     }
 
-    protected function getConsumerAccount(Payment $payment)
+    public function getConsumerAccount(Payment $payment): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
         return $info->details->consumerAccount;
     }
 
-    protected function getConsumerBic(Payment $payment)
+    public function getConsumerBic(Payment $payment): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
         return $info->details->consumerBic;
+    }
+
+    public function getPaymentTypeName(Payment $payment): ?string
+    {
+        $info = $this->getPaymentInfoFromTheProvider($payment);
+        return $info->method;
     }
 }

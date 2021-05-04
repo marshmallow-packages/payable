@@ -25,11 +25,11 @@
     "require": {
         "php": "^7.4|^8.0",
         "mollie/laravel-mollie": "^2.0",
+        "multisafepay/php-sdk": "^5.0",
         "marshmallow/sluggable": "^1.0",
         "marshmallow/helpers": "^2.0",
         "marshmallow/commands": "^1.0",
-        "marshmallow/nova-tinymce": "^1.0",
-        "marshmallow/nova-advanced-image": "^1.0"
+        "marshmallow/nova-tinymce": "^1.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.2",

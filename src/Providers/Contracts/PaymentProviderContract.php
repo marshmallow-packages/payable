@@ -2,6 +2,7 @@
 
 namespace Marshmallow\Payable\Providers\Contracts;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
 use Marshmallow\Payable\Models\Payment;
@@ -33,4 +34,15 @@ interface PaymentProviderContract
     public function preparePayment(Model $payableModel, PaymentType $paymentType): string;
     public function handleReturnNotification(Payment $payment, Request $request): PaymentStatusResponse;
     public function handleWebhookNotification(Payment $payment, Request $request): PaymentStatusResponse;
+
+    public function getPaymentStatus(Payment $payment);
+    public function handleResponse(Payment $payment): PaymentStatusResponse;
+    public function getCanceledAt(Payment $payment): ?Carbon;
+    public function getExpiresAt(Payment $payment): ?Carbon;
+    public function getFailedAt(Payment $payment): ?Carbon;
+    public function getPaidAt(Payment $payment): ?Carbon;
+    public function getConsumerName(Payment $payment): ?string;
+    public function getConsumerAccount(Payment $payment): ?string;
+    public function getConsumerBic(Payment $payment): ?string;
+    public function getPaymentTypeName(Payment $payment): ?string;
 }
