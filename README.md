@@ -36,7 +36,8 @@ PaymentStatusUnknown::class
 ## Usage
 
 ```env
-MOLLIE_KEY=""
+MOLLIE_KEY="test_*****"
+MULTI_SAFE_PAY_KEY="*****"
 PAYABLE_TEST_PAYMENTS=true
 ```
 
