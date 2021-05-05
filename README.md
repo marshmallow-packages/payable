@@ -22,10 +22,23 @@ php artisan marshmallow:resource PaymentProvider Payable
 php artisan marshmallow:resource PaymentType Payable
 ```
 
+## Events
+
+```php
+PaymentStatusOpen::class
+PaymentStatusPaid::class
+PaymentStatusFailed::class
+PaymentStatusCanceled::class
+PaymentStatusExpired::class
+PaymentStatusRefunded::class
+PaymentStatusUnknown::class
+```
+
 ## Usage
 
 ```env
-MOLLIE_KEY=""
+MOLLIE_KEY="test_*****"
+MULTI_SAFE_PAY_KEY="*****"
 PAYABLE_TEST_PAYMENTS=true
 ```
 
@@ -44,6 +57,14 @@ Add the `Payable` trait to your model that should support payments.
 
 -   [ ] Simple checkout
 -   [ ] Complex checkout
+
+### Tests
+
+Test mollie simple checkout
+
+```php
+\Marshmallow\Payable\Facades\PayableTest::mollie($test = false, $api_key = 'live_xxxx');
+```
 
 ## Changelog
 

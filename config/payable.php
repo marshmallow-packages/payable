@@ -8,7 +8,12 @@ return [
         /**
          * This is the route name where all successfull pages should be redirected to.
          */
-        'payment_success' => 'payment.success',
+        'payment_open' => 'payment.open',
+        'payment_paid' => 'payment.paid',
+        'payment_failed' => 'payment.failed',
+        'payment_canceled' => 'payment.canceled',
+        'payment_expired' => 'payment.expired',
+        'payment_unknown' => 'payment.unknown',
     ],
 
 

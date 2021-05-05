@@ -1,0 +1,32 @@
+use Marshmallow\Ecommerce\Cart\Models\ShoppingCart;
+use Marshmallow\Product\Models\Product;
+use App\Models\User;
+use Marshmallow\Payable\Models\PaymentType;
+
+$user = User::first();
+$product = Product::first();
+$paymentType = PaymentType::first();
+
+// dd($product->price);
+
+$cart = ShoppingCart::completelyNew();
+$cart->connectUser($user);
+$item = $cart->add($product, 4);
+
+
+// $item->setQuantity(8);
+// $item->increaseQuantity(2);
+// $item->decreaseQuantity();
+$paymentUrl = $cart->startPayment($paymentType);
+
+
+
+
+// echo $item->getUnitAmount() . "\n";
+// echo $item->getUnitAmountWithVat() . "\n";
+// echo $item->getUnitAmountWithoutVat() . "\n";
+// echo $item->getUnitVatAmount() . "\n";
+// echo $item->getTotalAmount() . "\n";
+// echo $item->getTotalAmountWithVat() . "\n";
+// echo $item->getTotalAmountWithoutVat() . "\n";
+// echo $item->getTotalVatAmount() . "\n";

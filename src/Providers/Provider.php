@@ -3,11 +3,13 @@
 namespace Marshmallow\Payable\Providers;
 
 use Exception;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Database\Eloquent\Model;
 use Marshmallow\Payable\Models\Payment;
+use Marshmallow\Payable\Facades\Payable;
 use Marshmallow\Payable\Models\PaymentType;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 
@@ -18,8 +20,9 @@ class Provider
     protected $testPayment;
     protected $payment;
     protected $provider_payment_object;
+    protected $payment_info_result;
 
-    public function preparePayment(Model $payableModel, PaymentType $paymentType, $testPayment = null): string
+    public function preparePayment(Model $payableModel, PaymentType $paymentType, $testPayment = null, $api_key = null): string
     {
         $this->payableModel = $payableModel;
         $this->paymentType = $paymentType;
@@ -28,7 +31,7 @@ class Provider
         $this->payment = $payableModel->payments()->create([
             'payment_provider_id' => $paymentType->payment_provider_id,
             'payment_type_id' => $paymentType->id,
-            'simple_checkout' => $paymentType->provider->simple_checkout,
+            'simple_checkout' => $paymentType->simple_checkout,
             'total_amount' => $payableModel->getTotalAmount(),
             'remaining_amount' => $payableModel->getTotalAmount(),
             'started' => now(),
@@ -36,7 +39,7 @@ class Provider
             'start_ip' => request()->ip(),
         ]);
 
-        $this->provider_payment_object = $this->createPayment();
+        $this->provider_payment_object = $this->createPayment($api_key);
         $this->payment->update([
             'provider_id' => $this->getPaymentId(),
         ]);
@@ -50,8 +53,22 @@ class Provider
 
         $this->handleStatusResponse($response, $payment, $request);
 
+        if ($payment->isOpen()) {
+            $route_name = config('payable.routes.payment_open');
+        } elseif ($payment->isPaid()) {
+            $route_name = config('payable.routes.payment_paid');
+        } elseif ($payment->isFailed()) {
+            $route_name = config('payable.routes.payment_failed');
+        } elseif ($payment->isCanceled()) {
+            $route_name = config('payable.routes.payment_canceled');
+        } elseif ($payment->isExpired()) {
+            $route_name = config('payable.routes.payment_expired');
+        } else {
+            $route_name = config('payable.routes.payment_unknown');
+        }
+
         return redirect()->route(
-            config('payable.routes.payment_success'),
+            $route_name,
             [
                 'status' => $response->getStatus(),
             ]
@@ -85,6 +102,20 @@ class Provider
                 'paid_amount' => $response->getPaidAmount(),
             ]);
         }
+
+        /**
+         * Store extra payment information
+         */
+        $payment->update([
+            'canceled_at' => $this->getCanceledAt($payment),
+            'expires_at' => $this->getExpiresAt($payment),
+            'failed_at' => $this->getFailedAt($payment),
+            'paid_at' => $this->getPaidAt($payment),
+            'consumer_name' => $this->getConsumerName($payment),
+            'consumer_account' => $this->getConsumerAccount($payment),
+            'consumer_bic' => $this->getConsumerBic($payment),
+            'payment_type_name' => $this->getPaymentTypeName($payment),
+        ]);
     }
 
     protected function getPayableAmount(): int
@@ -95,6 +126,11 @@ class Provider
     protected function getPayableDescription(): string
     {
         return $this->payableModel->getPayableDescription();
+    }
+
+    protected function getPayableIdentifier()
+    {
+        return $this->payableModel->id;
     }
 
     protected function isTestPayment($testPayment = null): bool
@@ -112,16 +148,23 @@ class Provider
          * Webhooks can not be executed in local development.
          * Therefor we disable it here.
          */
-        if (config('app.env') == 'local') {
+        if (config('app.env') == 'local' && !env('SHARED_WITH_EXPOSE')) {
             return null;
         }
 
         if (!$this->payment) {
             throw new Exception('Payment model hasnt been created yet. We can not create a webhook route');
         }
-        return route('payable.webhook', [
+
+        $webhook_path = route('payable.webhook', [
             'payment' => $this->payment,
         ]);
+
+        if (env('SHARED_WITH_EXPOSE')) {
+            $webhook_path = Str::replaceFirst(config('app.url'), env('SHARED_WITH_EXPOSE'), $webhook_path);
+        }
+
+        return $webhook_path;
     }
 
     protected function redirectUrl(): string
@@ -134,5 +177,66 @@ class Provider
     protected function getCurrencyIso4217Code(): string
     {
         return 'EUR';
+    }
+
+    protected function getPaymentInfoFromTheProvider(Payment $payment)
+    {
+        /**
+         * If the info is already available, we can just return it again.
+         */
+        if ($this->payment_info_result) {
+            return $this->payment_info_result;
+        }
+
+        /**
+         * Get the raw status of the payment from the payment provider.
+         */
+        $provider = Payable::getProvider($payment->type);
+
+        /**
+         * Store the result so we don't have to get this infromation
+         * mulitple times.
+         */
+        $this->payment_info_result = $provider->getPaymentStatus($payment);
+
+        /**
+         * Return the raw payment data.
+         */
+        return $this->payment_info_result;
+    }
+
+    protected function getCanceledAt(Payment $payment)
+    {
+        return null;
+    }
+
+    protected function getExpiresAt(Payment $payment)
+    {
+        return null;
+    }
+
+    protected function getFailedAt(Payment $payment)
+    {
+        return null;
+    }
+
+    protected function getPaidAt(Payment $payment)
+    {
+        return null;
+    }
+
+    protected function getConsumerName(Payment $payment)
+    {
+        return null;
+    }
+
+    protected function getConsumerAccount(Payment $payment)
+    {
+        return null;
+    }
+
+    protected function getConsumerBic(Payment $payment)
+    {
+        return null;
     }
 }

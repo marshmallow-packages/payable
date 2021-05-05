@@ -6,7 +6,15 @@ use ReflectionClass;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
+use Marshmallow\Payable\Facades\Payable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Marshmallow\Payable\Events\PaymentStatusOpen;
+use Marshmallow\Payable\Events\PaymentStatusPaid;
+use Marshmallow\Payable\Events\PaymentStatusFailed;
+use Marshmallow\Payable\Events\PaymentStatusExpired;
+use Marshmallow\Payable\Events\PaymentStatusUnknown;
+use Marshmallow\Payable\Events\PaymentStatusCanceled;
+use Marshmallow\Payable\Events\PaymentStatusRefunded;
 
 class Payment extends Model
 {
@@ -17,6 +25,7 @@ class Payment extends Model
     const STATUS_FAILED = 'failed';
     const STATUS_CANCELED = 'canceled';
     const STATUS_EXPIRED = 'expired';
+    const STATUS_REFUNDED = 'refunded';
 
     protected $table = 'payments';
 
@@ -25,6 +34,10 @@ class Payment extends Model
     protected $casts = [
         'started' => 'datetime',
         'status_changed_at' => 'datetime',
+        'canceled_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'failed_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     public function logCallback(Request $request)
@@ -36,6 +49,55 @@ class Payment extends Model
             'status' => app('Illuminate\Http\Response')->status(),
             'return_ip' => $request->ip(),
         ]);
+    }
+
+    public function triggerStatusEvent()
+    {
+        if ($this->isOpen()) {
+            event(new PaymentStatusOpen($this));
+        } elseif ($this->isPaid()) {
+            event(new PaymentStatusPaid($this));
+        } elseif ($this->isFailed()) {
+            event(new PaymentStatusFailed($this));
+        } elseif ($this->isCanceled()) {
+            event(new PaymentStatusCanceled($this));
+        } elseif ($this->isExpired()) {
+            event(new PaymentStatusExpired($this));
+        } elseif ($this->isRefunded()) {
+            event(new PaymentStatusRefunded($this));
+        } else {
+            event(new PaymentStatusUnknown($this));
+        }
+    }
+
+    public function isOpen()
+    {
+        return $this->status === self::STATUS_OPEN;
+    }
+
+    public function isPaid()
+    {
+        return $this->status === self::STATUS_PAID;
+    }
+
+    public function isFailed()
+    {
+        return $this->status === self::STATUS_FAILED;
+    }
+
+    public function isCanceled()
+    {
+        return $this->status === self::STATUS_CANCELED;
+    }
+
+    public function isExpired()
+    {
+        return $this->status === self::STATUS_EXPIRED;
+    }
+
+    public function isRefunded()
+    {
+        return $this->status === self::STATUS_REFUNDED;
     }
 
     public static function getKnownStatusses(): array
@@ -80,6 +142,16 @@ class Payment extends Model
     protected static function boot()
     {
         parent::boot();
+
+        static::created(function ($payment) {
+            $payment->triggerStatusEvent();
+        });
+
+        static::updated(function ($payment) {
+            if ($payment->isDirty('status')) {
+                $payment->triggerStatusEvent();
+            }
+        });
 
         static::creating(function ($payment) {
             if (empty($payment->{$payment->getKeyName()})) {
