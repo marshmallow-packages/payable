@@ -30,6 +30,7 @@ PaymentStatusPaid::class
 PaymentStatusFailed::class
 PaymentStatusCanceled::class
 PaymentStatusExpired::class
+PaymentStatusRefunded::class
 PaymentStatusUnknown::class
 ```
 
