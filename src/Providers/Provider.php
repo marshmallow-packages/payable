@@ -71,6 +71,7 @@ class Provider
             $route_name,
             [
                 'status' => $response->getStatus(),
+                'pid' => $payment->id,
             ]
         );
     }
