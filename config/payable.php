@@ -16,6 +16,8 @@ return [
         'payment_unknown' => 'payment.unknown',
     ],
 
+    'locale' => env('CASHIER_CURRENCY_LOCALE', 'nl_NL'),
+
 
     /**
      * Advanced Settings

@@ -19,6 +19,7 @@ class Mollie extends Provider implements PaymentProviderContract
         if ($api_key) {
             $api->setApiKey($api_key);
         }
+
         return $api->payments->create([
             'amount' => [
                 'currency' => $this->getCurrencyIso4217Code(),
@@ -27,6 +28,7 @@ class Mollie extends Provider implements PaymentProviderContract
             'description' => $this->getPayableDescription(),
             'redirectUrl' => $this->redirectUrl(),
             'webhookUrl' => $this->webhookUrl(),
+            'locale' => config('payable.locale'),
         ]);
     }
 
