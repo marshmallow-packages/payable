@@ -134,22 +134,32 @@ class Mollie extends Provider implements PaymentProviderContract
         return Carbon::parse($info->paidAt);
     }
 
-    public function getConsumerName(Payment $payment): ?string
+    protected function getPaymentDetail(Payment $payment, string $column): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
-        return $info->details->consumerName;
+        if (!isset($info->details)) {
+            return null;
+        }
+        if (!isset($info->details->{$column})) {
+            return null;
+        }
+
+        return $info->details->{$column};
+    }
+
+    public function getConsumerName(Payment $payment): ?string
+    {
+        return $this->getPaymentDetail($payment, 'consumerName');
     }
 
     public function getConsumerAccount(Payment $payment): ?string
     {
-        $info = $this->getPaymentInfoFromTheProvider($payment);
-        return $info->details->consumerAccount;
+        return $this->getPaymentDetail($payment, 'consumerAccount');
     }
 
     public function getConsumerBic(Payment $payment): ?string
     {
-        $info = $this->getPaymentInfoFromTheProvider($payment);
-        return $info->details->consumerBic;
+        return $this->getPaymentDetail($payment, 'consumerBic');
     }
 
     public function getPaymentTypeName(Payment $payment): ?string
