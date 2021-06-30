@@ -4,6 +4,7 @@ namespace Marshmallow\Payable;
 
 use Exception;
 use Marshmallow\Payable\Providers\Mollie;
+use Marshmallow\Payable\Providers\Stripe;
 use Marshmallow\Payable\Models\PaymentType;
 use Marshmallow\Payable\Providers\Provider;
 use Marshmallow\Payable\Providers\MultiSafePay;
@@ -19,6 +20,10 @@ class Payable
 
             case 'MULTI_SAFE_PAY':
                 return new MultiSafePay;
+                break;
+
+            case 'STRIPE':
+                return new Stripe;
                 break;
         }
 
