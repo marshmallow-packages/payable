@@ -23,17 +23,18 @@ class Stripe extends Provider implements PaymentProviderContract
 
     public function createPayment($api_key = null)
     {
+        //https://stripe.com/docs/api/checkout/sessions/create?lang=php
         return $this->stripe->checkout->sessions->create([
             'success_url' => $this->redirectUrl(),
-            'cancel_url' => $this->redirectUrl(),
+            'cancel_url' => $this->redirectUrl(),  // TODO
             'payment_method_types' => ['ideal'],
             'locale' => 'auto',
             'line_items' => [
                 [
                     'amount' => $this->getPayableAmount(),
-                    'quantity' => $this->getPayableAmount(),
+                    'quantity' => $this->getPayableAmount(), // TODO
                     'currency' => $this->getCurrencyIso4217Code(),
-                    'name' => $this->getPayableDescription(),
+                    'name' => $this->getPayableDescription(), // TODO
                     'description' => $this->getPayableDescription(),
                 ],
             ],
@@ -77,6 +78,7 @@ class Stripe extends Provider implements PaymentProviderContract
         return $this->handleResponse($payment);
     }
 
+    // TODO
     public function convertStatus($status): string
     {
         switch ($status) {
