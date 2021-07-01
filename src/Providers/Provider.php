@@ -149,7 +149,7 @@ class Provider
          * Webhooks can not be executed in local development.
          * Therefor we disable it here.
          */
-        if (config('app.env') == 'local' && !env('SHARED_WITH_EXPOSE')) {
+        if (config('app.env') == 'local' && !config('payable.shared_with_expose')) {
             return null;
         }
 
@@ -161,8 +161,8 @@ class Provider
             'payment' => $this->payment,
         ]);
 
-        if (env('SHARED_WITH_EXPOSE')) {
-            $webhook_path = Str::replaceFirst(config('app.url'), env('SHARED_WITH_EXPOSE'), $webhook_path);
+        if (config('payable.shared_with_expose')) {
+            $webhook_path = Str::replaceFirst(config('app.url'), config('payable.shared_with_expose'), $webhook_path);
         }
 
         return $webhook_path;

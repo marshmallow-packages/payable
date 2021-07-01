@@ -4,6 +4,8 @@ return [
 
     'test_payments' => env('PAYABLE_TEST_PAYMENTS', false),
 
+    'shared_with_expose' => env('SHARED_WITH_EXPOSE', false),
+
     'routes' => [
         /**
          * This is the route name where all successfull pages should be redirected to.
@@ -39,5 +41,15 @@ return [
     ],
     'rules' => [
         'icon_rules' => [200, 200]
+    ],
+
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'multisafepay' => [
+        'key' => env('MULTI_SAFE_PAY_KEY')
     ],
 ];

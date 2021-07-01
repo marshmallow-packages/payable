@@ -17,13 +17,13 @@ class Stripe extends Provider implements PaymentProviderContract
     protected function getStripeClient()
     {
         return new \Stripe\StripeClient(
-            env('STRIPE_SECRET')
+            config('payable.stripe.secret')
         );
     }
 
     public function createPayment($api_key = null)
     {
-        $api_key = ($api_key) ? $api_key : env('STRIPE_SECRET');
+        $api_key = ($api_key) ? $api_key : config('payable.stripe.secret');
         StripApi::setApiKey($api_key);
 
         return Session::create([
@@ -71,7 +71,7 @@ class Stripe extends Provider implements PaymentProviderContract
         $event = \Stripe\Webhook::constructEvent(
             @file_get_contents('php://input'),
             $request->header('stripe-signature'),
-            env('STRIPE_WEBHOOK_SECRET')
+            config('payable.stripe.webhook')
         );
 
 
