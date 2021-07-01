@@ -17,6 +17,7 @@ return [
     ],
 
     'locale' => env('CASHIER_CURRENCY_LOCALE', 'nl_NL'),
+    'locale_iso_639' => env('CASHIER_CURRENCY_LOCALE_ISO_639', 'nl'),
 
 
     /**

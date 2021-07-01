@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Marshmallow\Payable\Models\Payment;
 use Marshmallow\Payable\Facades\Payable;
+use Marshmallow\Payable\Models\PaymentProvider;
 
 class PaymentCallbackController extends Controller
 {
@@ -22,6 +23,15 @@ class PaymentCallbackController extends Controller
     {
         $payment = $this->guard($payment_id, $request);
         $provider = Payable::getProvider($payment->type);
+        return $provider->handleWebhook($payment, $request);
+    }
+
+    public function stripe(Request $request)
+    {
+        $payment_provider = PaymentProvider::type(\Marshmallow\Payable\Payable::STRIPE)->first();
+        $provider = Payable::getProvider($payment_provider->types->first());
+
+        $payment = $provider->guard($request);
         return $provider->handleWebhook($payment, $request);
     }
 

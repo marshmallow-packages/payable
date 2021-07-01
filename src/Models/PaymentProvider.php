@@ -4,6 +4,7 @@ namespace Marshmallow\Payable\Models;
 
 use Marshmallow\Sluggable\HasSlug;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PaymentProvider extends Model
@@ -18,6 +19,11 @@ class PaymentProvider extends Model
     public const PROVIDER_MULTI_SAFE_PAY = 'PROVIDER_MULTI_SAFE_PAY';
 
     protected $guarded = [];
+
+    public function scopeType(Builder $builder, string $type)
+    {
+        $builder->where('type', $type);
+    }
 
     public function types()
     {
