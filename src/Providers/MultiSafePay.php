@@ -27,7 +27,7 @@ class MultiSafePay extends Provider implements PaymentProviderContract
     {
         $test_payment = config('payable.test_payments');
         $is_production = (!$test_payment);
-        return new \MultiSafepay\Sdk(env('MULTI_SAFE_PAY_KEY'), $is_production);
+        return new \MultiSafepay\Sdk(config('payable.multisafepay.key'), $is_production);
     }
 
     public function createPayment($api_key = null)
