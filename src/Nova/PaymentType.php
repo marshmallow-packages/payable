@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Laravel\Nova\Fields\Code;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Select;
+use Marshmallow\TagsField\Tags;
 use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Fields\BelongsTo;
@@ -105,11 +106,11 @@ class PaymentType extends Resource
 
             Heading::make(__('Provider information')),
             Text::make(__('Type ID'), 'vendor_type_id'),
-            Code::make(__('Options'), 'vendor_type_options'),
+            Tags::make(__('Options'), 'vendor_type_options'),
 
             Heading::make(__('Rich content')),
             AdvancedImage::make(__('Icon'), 'icon')
-                ->croppable(config('payable.rules.icon_rules')[0]/config('payable.rules.icon_rules')[1])
+                ->croppable(config('payable.rules.icon_rules')[0] / config('payable.rules.icon_rules')[1])
                 ->resize(config('payable.rules.icon_rules')[0], config('payable.rules.icon_rules')[1]),
             TinyMCE::make(__('Description'), 'description'),
             TinyMCE::make(__('Notice'), 'notice'),

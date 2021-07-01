@@ -30,4 +30,6 @@ trait Payable
 
     public abstract function getTotalAmount(): int;
     public abstract function getPayableDescription(): string;
+    public abstract function getCustomerName(): ?string;
+    public abstract function getCustomerEmail(): ?string;
 }

@@ -15,6 +15,10 @@ class PaymentType extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'vendor_type_options' => 'array',
+    ];
+
     public function provider()
     {
         return $this->belongsTo(config('payable.models.payment_provider'), 'payment_provider_id');

@@ -4,21 +4,30 @@ namespace Marshmallow\Payable;
 
 use Exception;
 use Marshmallow\Payable\Providers\Mollie;
+use Marshmallow\Payable\Providers\Stripe;
 use Marshmallow\Payable\Models\PaymentType;
 use Marshmallow\Payable\Providers\Provider;
 use Marshmallow\Payable\Providers\MultiSafePay;
 
 class Payable
 {
+    public const MOLLIE = 'MOLLIE';
+    public const MULTI_SAFE_PAY = 'MULTI_SAFE_PAY';
+    public const STRIPE = 'STRIPE';
+
     public function getProvider(PaymentType $paymentType): Provider
     {
         switch ($paymentType->provider->type) {
-            case 'MOLLIE':
+            case self::MOLLIE:
                 return new Mollie;
                 break;
 
-            case 'MULTI_SAFE_PAY':
+            case self::MULTI_SAFE_PAY:
                 return new MultiSafePay;
+                break;
+
+            case self::STRIPE:
+                return new Stripe;
                 break;
         }
 
