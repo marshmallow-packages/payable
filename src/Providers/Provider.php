@@ -3,6 +3,7 @@
 namespace Marshmallow\Payable\Providers;
 
 use Exception;
+use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -108,10 +109,10 @@ class Provider
          * Store extra payment information
          */
         $payment->update([
-            'canceled_at' => $this->getCanceledAt($payment),
-            'expires_at' => $this->getExpiresAt($payment),
-            'failed_at' => $this->getFailedAt($payment),
-            'paid_at' => $this->getPaidAt($payment),
+            'canceled_at' => $this->getCanceledAtTimeStamp($payment),
+            'expires_at' => $this->getExpiresAtTimeStamp($payment),
+            'failed_at' => $this->getFailedAtTimeStamp($payment),
+            'paid_at' => $this->getPaidAtTimeStamp($payment),
             'consumer_name' => $this->getConsumerName($payment),
             'consumer_account' => $this->getConsumerAccount($payment),
             'consumer_bic' => $this->getConsumerBic($payment),
@@ -211,6 +212,42 @@ class Provider
         return $this->payment_info_result;
     }
 
+    private function getCanceledAtTimeStamp(Payment $payment): ?Carbon
+    {
+        if ($payment->isCanceled()) {
+            return $this->getCanceledAt($payment);
+        }
+
+        return null;
+    }
+
+    private function getExpiresAtTimeStamp(Payment $payment): ?Carbon
+    {
+        if ($payment->isExpired()) {
+            return $this->getExpiresAt($payment);
+        }
+
+        return null;
+    }
+
+    private function getFailedAtTimeStamp(Payment $payment): ?Carbon
+    {
+        if ($payment->isFailed()) {
+            return $this->getFailedAt($payment);
+        }
+
+        return null;
+    }
+
+    private function getPaidAtTimeStamp(Payment $payment): ?Carbon
+    {
+        if ($payment->isPaid()) {
+            return $this->getPaidAt($payment);
+        }
+
+        return null;
+    }
+
     protected function getCanceledAt(Payment $payment)
     {
         return null;
@@ -244,5 +281,19 @@ class Provider
     protected function getConsumerBic(Payment $payment)
     {
         return null;
+    }
+
+    protected function storeResultPayload(Payment $payment, string $result = null): void
+    {
+        $payment->update([
+            'result_payload' => $result,
+        ]);
+    }
+
+    protected function storeResultPayloadText(Payment $payment, string $result = null): void
+    {
+        $payment->update([
+            'result_payload_text' => $result,
+        ]);
     }
 }

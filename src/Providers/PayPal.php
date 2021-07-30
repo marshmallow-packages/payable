@@ -20,13 +20,25 @@ use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
 class PayPal extends Provider implements PaymentProviderContract
 {
+    protected const SANDBOX_MODE = 'sandbox';
+
     protected function getClient()
     {
         $clientId = config('payable.paypal.client_id');
         $clientSecret = config('payable.paypal.secret');
-        $env = new SandboxEnvironment($clientId, $clientSecret);
-        // $env = new ProductionEnvironment($clientId, $clientSecret);
+
+        if ($this->isProduction()) {
+            $env = new ProductionEnvironment($clientId, $clientSecret);
+        } else {
+            $env = new SandboxEnvironment($clientId, $clientSecret);
+        }
+
         return new PayPalHttpClient($env);
+    }
+
+    protected function isProduction()
+    {
+        return config('payable.paypal.mode') !== self::SANDBOX_MODE;
     }
 
     public function createPayment($api_key = null)
@@ -106,9 +118,7 @@ class PayPal extends Provider implements PaymentProviderContract
         $response = $this->getClient()->execute($request);
         $result = $response->result;
 
-        $payment->update([
-            'result_payload' => json_encode($result),
-        ]);
+        $this->storeResultPayload($payment, json_encode($result));
 
         return $result;
     }
