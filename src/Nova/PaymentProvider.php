@@ -9,6 +9,7 @@ use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\HasMany;
 use Laravel\Nova\Fields\MorphTo;
+use Marshmallow\Payable\Payable;
 use Laravel\Nova\Fields\DateTime;
 use Marshmallow\Payable\Nova\PaymentType;
 use Marshmallow\Payable\Models\PaymentProvider as PaymentProviderModel;
@@ -93,10 +94,12 @@ class PaymentProvider extends Resource
                 PaymentProviderModel::PROVIDER_CUSTOM => 'Custom',
                 PaymentProviderModel::PROVIDER_MOLLIE => 'Mollie',
                 PaymentProviderModel::PROVIDER_MULTI_SAFE_PAY => 'Multi Safe Pay',
+                Payable::PAYPAL => 'PayPal',
+                Payable::IPPIES => 'ippies.nl',
             ]),
-            Boolean::make(__('Use simple checkout'), 'simple_checkout')->help(
-                __('Simple checkout means that you can just implement a "Pay now" button on you cart page. The type of payment (ideal, paypal, CC etc) will be done on the website of the payment provider')
-            ),
+            // Boolean::make(__('Use simple checkout'), 'simple_checkout')->help(
+            // __('Simple checkout means that you can just implement a "Pay now" button on you cart page. The type of payment (ideal, paypal, CC etc) will be done on the website of the payment provider')
+            // ),
             Boolean::make(__('Active'), 'active')->help(
                 __('Please note: if you disable this payment, existing payments can still be processed but new payments can not be created.')
             ),
