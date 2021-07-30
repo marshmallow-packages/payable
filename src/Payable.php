@@ -3,7 +3,9 @@
 namespace Marshmallow\Payable;
 
 use Exception;
+use Marshmallow\Payable\Providers\Ippies;
 use Marshmallow\Payable\Providers\Mollie;
+use Marshmallow\Payable\Providers\PayPal;
 use Marshmallow\Payable\Providers\Stripe;
 use Marshmallow\Payable\Models\PaymentType;
 use Marshmallow\Payable\Providers\Provider;
@@ -14,6 +16,8 @@ class Payable
     public const MOLLIE = 'MOLLIE';
     public const MULTI_SAFE_PAY = 'MULTI_SAFE_PAY';
     public const STRIPE = 'STRIPE';
+    public const IPPIES = 'IPPIES';
+    public const PAYPAL = 'PAYPAL';
 
     public function getProvider(PaymentType $paymentType): Provider
     {
@@ -28,6 +32,14 @@ class Payable
 
             case self::STRIPE:
                 return new Stripe;
+                break;
+
+            case self::IPPIES:
+                return new Ippies;
+                break;
+
+            case self::PAYPAL:
+                return new PayPal;
                 break;
         }
 

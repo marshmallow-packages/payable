@@ -35,6 +35,11 @@ class PaymentCallbackController extends Controller
         return $provider->handleWebhook($payment, $request);
     }
 
+    public function paypal(Request $request)
+    {
+        mail('stef@marshmallow.dev', 'PayPal callback', json_encode($request->all()));
+    }
+
     protected function guard($payment_id, Request $request): Payment
     {
         $payment = Payment::find($payment_id);

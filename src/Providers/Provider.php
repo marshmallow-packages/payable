@@ -124,6 +124,11 @@ class Provider
         return $this->payment->remaining_amount;
     }
 
+    protected function getPayableAmountAsFloat(): float
+    {
+        return ($this->payment->remaining_amount / 100);
+    }
+
     protected function getPayableDescription(): string
     {
         return $this->payableModel->getPayableDescription();
