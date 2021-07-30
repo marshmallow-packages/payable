@@ -53,6 +53,15 @@ return [
         'key' => env('MULTI_SAFE_PAY_KEY')
     ],
 
+    'ippies' => [
+        'shop_id' => env('IPPIES_SHOP_ID'),
+        'key' => env('IPPIES_KEY'),
+        'api' => 'https://payment.ippies.nl/paymod.php',
+        'test_api' => 'https://payment.ippiestest.nl/paymod.php',
+        'status_api' => 'http://api.ippies.nl',
+        'status_api_key' => env('IPPIES_STATUS_KEY'),
+    ],
+
     'paypal' => [
         'client_id' => env('PAYPAL_CLIENT_ID', ''),
         'secret' => env('PAYPAL_SECRET', ''),
