@@ -122,7 +122,8 @@ class Payment extends Model
 
     public function type()
     {
-        return $this->belongsTo(config('payable.models.payment_type'), 'payment_type_id');
+        return $this->setConnection(config('payable.connections.payment_type'))
+            ->belongsTo(config('payable.models.payment_type'), 'payment_type_id');
     }
 
     public function webhooks()

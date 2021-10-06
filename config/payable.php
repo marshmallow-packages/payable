@@ -33,6 +33,9 @@ return [
         'payment_webhook' => \Marshmallow\Payable\Models\PaymentWebhook::class,
         'payment_status' => \Marshmallow\Payable\Models\PaymentStatus::class,
     ],
+    'connections' => [
+        'payment_type' => null,
+    ],
     'nova' => [
         'resources' => [
             'payment' => \Marshmallow\Payable\Nova\Payment::class,
