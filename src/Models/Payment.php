@@ -6,7 +6,6 @@ use ReflectionClass;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
-use Marshmallow\Payable\Facades\Payable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Marshmallow\Payable\Events\PaymentStatusOpen;
 use Marshmallow\Payable\Events\PaymentStatusPaid;

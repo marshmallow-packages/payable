@@ -3,6 +3,7 @@
 namespace Marshmallow\Payable;
 
 use Exception;
+use Marshmallow\Payable\Providers\Adyen;
 use Marshmallow\Payable\Providers\Ippies;
 use Marshmallow\Payable\Providers\Mollie;
 use Marshmallow\Payable\Providers\PayPal;
@@ -18,6 +19,7 @@ class Payable
     public const STRIPE = 'STRIPE';
     public const IPPIES = 'IPPIES';
     public const PAYPAL = 'PAYPAL';
+    public const ADYEN = 'ADYEN';
 
     public function getProvider(PaymentType $paymentType): Provider
     {
@@ -40,6 +42,10 @@ class Payable
 
             case self::PAYPAL:
                 return new PayPal;
+                break;
+
+            case self::ADYEN:
+                return new Adyen;
                 break;
         }
 

@@ -186,6 +186,16 @@ class Provider
         return 'EUR';
     }
 
+    protected function getCountryCode(): string
+    {
+        return 'NL';
+    }
+
+    protected function getLocale(): string
+    {
+        return config('payable.locale');
+    }
+
     protected function getPaymentInfoFromTheProvider(Payment $payment)
     {
         /**

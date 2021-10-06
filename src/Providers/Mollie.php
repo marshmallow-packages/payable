@@ -6,7 +6,6 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Marshmallow\Payable\Models\Payment;
-use Marshmallow\Payable\Facades\Payable;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;

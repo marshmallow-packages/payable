@@ -7,19 +7,11 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use MultiSafepay\ValueObject\Money;
 use Marshmallow\Payable\Models\Payment;
-use Marshmallow\Payable\Facades\Payable;
-use MultiSafepay\ValueObject\Customer\Address;
-use MultiSafepay\ValueObject\Customer\Country;
-use Mollie\Laravel\Facades\Mollie as MollieApi;
 use MultiSafepay\Api\Transactions\OrderRequest;
-use MultiSafepay\ValueObject\Customer\PhoneNumber;
-use MultiSafepay\ValueObject\Customer\EmailAddress;
-use MultiSafepay\Api\Transactions\TransactionResponse;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 use MultiSafepay\Api\Transactions\OrderRequest\Arguments\PluginDetails;
 use MultiSafepay\Api\Transactions\OrderRequest\Arguments\PaymentOptions;
-use MultiSafepay\Api\Transactions\OrderRequest\Arguments\CustomerDetails;
 
 class MultiSafePay extends Provider implements PaymentProviderContract
 {

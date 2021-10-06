@@ -4,14 +4,10 @@ namespace Marshmallow\Payable\Providers;
 
 use Exception;
 use Carbon\Carbon;
-use PayPal\Rest\ApiContext;
 use Illuminate\Http\Request;
-use PayPal\Auth\OAuthTokenCredential;
 use Marshmallow\Payable\Models\Payment;
 use PayPalCheckoutSdk\Core\PayPalHttpClient;
-use PayPalCheckoutSdk\Core\PayPalEnvironment;
 use PayPalCheckoutSdk\Core\SandboxEnvironment;
-use Mollie\Laravel\Facades\Mollie as MollieApi;
 use PayPalCheckoutSdk\Core\ProductionEnvironment;
 use PayPalCheckoutSdk\Orders\OrdersCreateRequest;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest;

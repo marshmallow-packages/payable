@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Stripe\Checkout\Session;
 use Stripe\Stripe as StripApi;
 use Marshmallow\Payable\Models\Payment;
-use Mollie\Laravel\Facades\Mollie as MollieApi;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
@@ -103,7 +102,7 @@ class Stripe extends Provider implements PaymentProviderContract
             throw new Exception("Stripe session could not be found");
         }
 
-        $payment = Payment::where('provider_id', $session->id)->first();
+        $payment = config('payable.models.payment')::where('provider_id', $session->id)->first();
         if (!$payment) {
             throw new Exception("Payment could not be found with the provided stripe session id.");
         }
