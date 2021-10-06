@@ -8,10 +8,7 @@ use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\HasMany;
-use Laravel\Nova\Fields\MorphTo;
 use Marshmallow\Payable\Payable;
-use Laravel\Nova\Fields\DateTime;
-use Marshmallow\Payable\Nova\PaymentType;
 use Marshmallow\Payable\Models\PaymentProvider as PaymentProviderModel;
 
 class PaymentProvider extends Resource

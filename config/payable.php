@@ -26,6 +26,7 @@ return [
      * Advanced Settings
      */
     'models' => [
+        'user' => \App\Models\User::class,
         'payment' => \Marshmallow\Payable\Models\Payment::class,
         'payment_provider' => \Marshmallow\Payable\Models\PaymentProvider::class,
         'payment_type' => \Marshmallow\Payable\Models\PaymentType::class,

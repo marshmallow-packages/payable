@@ -29,7 +29,7 @@ class PaymentStatusResponse
 
     protected function checkIfStatusExists($status)
     {
-        $statusses = Payment::getKnownStatusses();
+        $statusses = config('payable.models.payment')::getKnownStatusses();
         if (!in_array($status, $statusses)) {
             throw new Exception("Unknown status {$status} provided");
         }

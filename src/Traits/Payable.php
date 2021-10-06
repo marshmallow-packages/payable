@@ -3,6 +3,7 @@
 namespace Marshmallow\Payable\Traits;
 
 use Exception;
+use Illuminate\Database\Eloquent\Model;
 use Marshmallow\Payable\Models\Payment;
 use Marshmallow\Payable\Models\PaymentType;
 use Marshmallow\Payable\Facades\Payable as PayableHelper;
@@ -32,4 +33,5 @@ trait Payable
     public abstract function getPayableDescription(): string;
     public abstract function getCustomerName(): ?string;
     public abstract function getCustomerEmail(): ?string;
+    public abstract function getCustomer(): ?Model;
 }

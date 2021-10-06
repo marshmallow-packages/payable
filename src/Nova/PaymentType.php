@@ -4,7 +4,6 @@ namespace Marshmallow\Payable\Nova;
 
 use App\Nova\Resource;
 use Illuminate\Http\Request;
-use Laravel\Nova\Fields\Code;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Select;
 use Marshmallow\TagsField\Tags;
@@ -13,7 +12,6 @@ use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Fields\BelongsTo;
 use Marshmallow\Nova\TinyMCE\TinyMCE;
 use Marshmallow\AdvancedImage\AdvancedImage;
-use Marshmallow\Payable\Nova\PaymentProvider;
 use Marshmallow\Payable\Models\PaymentType as PaymentTypeModel;
 
 class PaymentType extends Resource
