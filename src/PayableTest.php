@@ -21,6 +21,13 @@ class PayableTest
         return $cart->startPayment($payment_type, $test, $api_key);
     }
 
+    public function multisafepay($test = false, $api_key = null)
+    {
+        $cart = $this->getTestCart();
+        $payment_type = $this->getPaymentType(Payable::MULTI_SAFE_PAY);
+        return $cart->startPayment($payment_type, $test, $api_key);
+    }
+
     public function adyen($test = false, $api_key = null)
     {
         $cart = $this->getTestCart();
@@ -49,7 +56,7 @@ class PayableTest
 
     protected function getPaymentType($provider)
     {
-        $provider = config('cart.models.payment_provider')::type($provider)->first();
+        $provider = config('payable.models.payment_provider')::type($provider)->first();
         return $provider->types->first();
     }
 

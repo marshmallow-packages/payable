@@ -43,6 +43,11 @@ return [
             'payment_type' => \Marshmallow\Payable\Nova\PaymentType::class,
         ]
     ],
+
+    'actions' => [
+        'prepare_callback' => \Marshmallow\Payable\Actions\PrepareForCallback::class,
+    ],
+
     'rules' => [
         'icon_rules' => [200, 200]
     ],

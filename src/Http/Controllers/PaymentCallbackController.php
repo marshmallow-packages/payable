@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Marshmallow\Payable\Models\Payment;
 use Marshmallow\Payable\Facades\Payable;
 use Marshmallow\Payable\Providers\Adyen;
+use Marshmallow\Payable\Actions\PrepareForCallback;
 
 class PaymentCallbackController extends Controller
 {
@@ -76,6 +77,16 @@ class PaymentCallbackController extends Controller
         $payment = config('payable.models.payment')::find($payment_id);
         if (!$payment) {
             abort(404);
+        }
+
+        /**
+         * This method is called and does nothing within the package.
+         * We've added this for the situation when you use test payments on
+         * and IP lock. By overriding this method the package user is able
+         * to activate the test api if this is a test payment.
+         */
+        if (class_exists(config('payable.actions.prepare_callback'))) {
+            $payment = config('payable.actions.prepare_callback')::handle($payment);
         }
 
         $payment->logCallback($request);
