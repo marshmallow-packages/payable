@@ -2,10 +2,12 @@
 
 namespace Marshmallow\Payable\Models;
 
+use Exception;
 use ReflectionClass;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
+use Marshmallow\Payable\Facades\Payable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Marshmallow\Payable\Events\PaymentStatusOpen;
 use Marshmallow\Payable\Events\PaymentStatusPaid;
@@ -67,6 +69,19 @@ class Payment extends Model
         } else {
             event(new PaymentStatusUnknown($this));
         }
+    }
+
+    public function refund(int $amount)
+    {
+        $client = Payable::getProvider(
+            $this->type,
+        );
+
+        if (!method_exists($client, 'refund')) {
+            throw new Exception("Refund is not implemented for " . get_class($client) . " yet.");
+        }
+
+        return $client->refund($this, $amount);
     }
 
     public function isOpen()
