@@ -6,28 +6,52 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Marshmallow\Payable\Models\Payment;
+use Mollie\Laravel\Wrappers\MollieApiWrapper;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
+use Mollie\Api\Resources\Payment as MolliePayment;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
 class Mollie extends Provider implements PaymentProviderContract
 {
-    public function createPayment($api_key = null)
+    protected function getClient($api_key = null): MollieApiWrapper
     {
         $api = MollieApi::api();
         if ($api_key) {
             $api->setApiKey($api_key);
         }
 
+        return $api;
+    }
+
+    public function createPayment($api_key = null)
+    {
+        $api = $this->getClient($api_key);
+
         return $api->payments->create([
             'amount' => [
                 'currency' => $this->getCurrencyIso4217Code(),
-                'value' => $this->formatCentToDecimalString(),
+                'value' => $this->formatCentToDecimalString(
+                    $this->getPayableAmount()
+                ),
             ],
             'description' => $this->getPayableDescription(),
             'redirectUrl' => $this->redirectUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
+        ]);
+    }
+
+    public function refund(Payment $payment, int $amount)
+    {
+        $api = $this->getClient();
+        $mollie_payment = $api->payments->get($payment->provider_id);
+
+        return $api->payments->refund($mollie_payment, [
+            'amount' => [
+                'currency' => $this->getCurrencyIso4217Code(),
+                'value' => $this->formatCentToDecimalString($amount),
+            ],
         ]);
     }
 
@@ -99,14 +123,13 @@ class Mollie extends Provider implements PaymentProviderContract
         return new PaymentStatusResponse($status, $paid_amount);
     }
 
-    public function formatCentToDecimalString(): string
+    public function formatCentToDecimalString($amount): string
     {
         /**
          * Mollie says;
          * You must send the correct number of decimals, thus we enforce the use of strings
          */
-        $payable_amount = $this->getPayableAmount();
-        return number_format($payable_amount / 100, 2, '.', '');
+        return number_format($amount / 100, 2, '.', '');
     }
 
     public function getCanceledAt(Payment $payment): ?Carbon
