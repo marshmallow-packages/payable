@@ -27,6 +27,7 @@ class Payment extends Model
     const STATUS_CANCELED = 'canceled';
     const STATUS_EXPIRED = 'expired';
     const STATUS_REFUNDED = 'refunded';
+    const STATUS_PENDING = 'pending';
 
     protected $table = 'payments';
 
@@ -81,7 +82,17 @@ class Payment extends Model
             throw new Exception("Refund is not implemented for " . get_class($client) . " yet.");
         }
 
-        return $client->refund($this, $amount);
+        $result = $client->refund($this, $amount);
+
+        return PaymentRefund::create([
+            'payment_id' => $this->id,
+            'provider_id' => $result->getProviderId(),
+            'amount' => $amount,
+            'status' => $client->convertStatus(
+                $result->getStatus()
+            ),
+            'is_test' => $client->isTestPayment(),
+        ]);
     }
 
     public function isOpen()
