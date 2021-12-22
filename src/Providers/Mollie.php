@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Marshmallow\Payable\Models\Payment;
 use Mollie\Laravel\Wrappers\MollieApiWrapper;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
+use Marshmallow\Payable\Resources\PaymentRefund;
 use Mollie\Api\Resources\Payment as MolliePayment;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
@@ -47,12 +48,17 @@ class Mollie extends Provider implements PaymentProviderContract
         $api = $this->getClient();
         $mollie_payment = $api->payments->get($payment->provider_id);
 
-        return $api->payments->refund($mollie_payment, [
+        $result = $api->payments->refund($mollie_payment, [
             'amount' => [
                 'currency' => $this->getCurrencyIso4217Code(),
                 'value' => $this->formatCentToDecimalString($amount),
             ],
         ]);
+
+        return new PaymentRefund(
+            provider_id: $result->id,
+            status: $result->status,
+        );
     }
 
     public function getPaymentId()
@@ -86,6 +92,10 @@ class Mollie extends Provider implements PaymentProviderContract
         switch ($status) {
             case 'open':
                 return Payment::STATUS_OPEN;
+                break;
+
+            case 'pending':
+                return Payment::STATUS_PENDING;
                 break;
 
             case 'paid':

@@ -140,7 +140,7 @@ class Provider
         return $this->payableModel->id;
     }
 
-    protected function isTestPayment($testPayment = null): bool
+    public function isTestPayment($testPayment = null): bool
     {
         if (is_bool($testPayment)) {
             return $testPayment;
