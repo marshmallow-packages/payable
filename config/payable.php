@@ -80,4 +80,9 @@ return [
         'file_name' => env('PAYPAL_LOG_FILE_NAME', storage_path() . '/logs/paypal.log'),
         'log_level' => env('PAYPAL_LOG_LEVEL', 'ERROR'),
     ],
+
+    'buckaroo' => [
+        'website_key' => env('BUCKAROO_WEBSITE_KEY'),
+        'secret' => env('BUCKAROO_SECRET'),
+    ],
 ];

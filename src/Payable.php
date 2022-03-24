@@ -9,6 +9,7 @@ use Marshmallow\Payable\Providers\Mollie;
 use Marshmallow\Payable\Providers\PayPal;
 use Marshmallow\Payable\Providers\Stripe;
 use Marshmallow\Payable\Models\PaymentType;
+use Marshmallow\Payable\Providers\Buckaroo;
 use Marshmallow\Payable\Providers\Provider;
 use Marshmallow\Payable\Providers\MultiSafePay;
 
@@ -20,6 +21,7 @@ class Payable
     public const IPPIES = 'IPPIES';
     public const PAYPAL = 'PAYPAL';
     public const ADYEN = 'ADYEN';
+    public const BUCKAROO = 'BUCKAROO';
 
     public function getProvider(PaymentType $paymentType): Provider
     {
@@ -46,6 +48,10 @@ class Payable
 
             case self::ADYEN:
                 return new Adyen;
+                break;
+
+            case self::BUCKAROO:
+                return new Buckaroo;
                 break;
         }
 
