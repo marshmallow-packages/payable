@@ -54,6 +54,13 @@ class PayableTest
         return $cart->startPayment($payment_type, $test, $api_key);
     }
 
+    public function buckaroo($test = false, $api_key = null)
+    {
+        $cart = $this->getTestCart();
+        $payment_type = $this->getPaymentType(Payable::BUCKAROO);
+        return $cart->startPayment($payment_type, $test, $api_key);
+    }
+
     protected function getPaymentType($provider)
     {
         $provider = config('payable.models.payment_provider')::type($provider)->first();
