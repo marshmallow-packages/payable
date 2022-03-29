@@ -22,12 +22,19 @@ class Provider
     protected $payment;
     protected $provider_payment_object;
     protected $payment_info_result;
+    protected $extra_payment_data_callback;
 
-    public function preparePayment(Model $payableModel, PaymentType $paymentType, $testPayment = null, $api_key = null): string
-    {
+    public function preparePayment(
+        Model $payableModel,
+        PaymentType $paymentType,
+        $testPayment = null,
+        $api_key = null,
+        callable $extraPaymentDataCallback = null
+    ): string {
         $this->payableModel = $payableModel;
         $this->paymentType = $paymentType;
         $this->testPayment = $testPayment;
+        $this->extraPaymentDataCallback = $extraPaymentDataCallback;
 
         $this->payment = $payableModel->payments()->create([
             'payment_provider_id' => $paymentType->payment_provider_id,
