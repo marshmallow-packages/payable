@@ -17,17 +17,22 @@ use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
 class Buckaroo extends Provider implements PaymentProviderContract
 {
-    protected function getClient(): BuckarooApi
+    protected function getClient($testMode = false): BuckarooApi
     {
-        return new BuckarooApi;
+        return new BuckarooApi(
+            testMode: $testMode
+        );
     }
 
     public function createPayment()
     {
-        $api = $this->getClient();
+        $api = $this->getClient($this->testPayment);
+
+        $extra_data_method = $this->extraPaymentDataCallback;
+        $extra_data = $extra_data_method();
 
         return $api->createPayment([
-            'Currency' => "EUR",
+            'Currency' => $this->getCurrencyIso4217Code(),
             'AmountDebit' => $this->getPayableAmount() / 100,
             'Invoice' => $this->getPayableDescription(),
             'ReturnURL' => $this->redirectUrl(),
@@ -40,11 +45,11 @@ class Buckaroo extends Provider implements PaymentProviderContract
                 'ServiceList' => [
                     [
                         'Action' => 'Pay',
-                        'Name' => 'ideal',
+                        'Name' => $extra_data->service,
                         'Parameters' => [
                             [
                                 'Name' => 'issuer',
-                                'Value' => 'ABNANL2A',
+                                'Value' => $extra_data->issuer,
                             ]
                         ],
                     ]

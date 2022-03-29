@@ -15,13 +15,23 @@ trait Payable
         return true;
     }
 
-    public function startPayment(PaymentType $paymentType, $testPayment = null, $pay_key = null)
-    {
+    public function startPayment(
+        PaymentType $paymentType,
+        $testPayment = null,
+        $apiKey = null,
+        callable $extraPaymentDataCallback = null
+    ) {
         if (!$this->paymentAllowed()) {
             throw new Exception("Payment is not allowed at this point");
         }
         $provider = PayableHelper::getProvider($paymentType);
-        return $provider->preparePayment($this, $paymentType, $testPayment, $pay_key);
+        return $provider->preparePayment(
+            $this,
+            $paymentType,
+            $testPayment,
+            $apiKey,
+            $extraPaymentDataCallback
+        );
     }
 
     public function payments()

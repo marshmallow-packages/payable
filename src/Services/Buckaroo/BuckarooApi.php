@@ -7,6 +7,12 @@ use Illuminate\Support\Facades\Http;
 
 class BuckarooApi
 {
+    public function __construct(
+        protected $testMode = false
+    )
+    {
+        //
+    }
     public function createPayment(array $payment_data)
     {
         $path = "{$this->getApiHost()}/json/Transaction";
@@ -21,17 +27,23 @@ class BuckarooApi
         return $response->json();
     }
 
-    public function refund(string $transactionKey, float $amount)
+    public function refund(
+        string $transactionKey,
+        float $amount,
+        string $invoice,
+        string $service,
+        string $currency = 'EUR',
+    )
     {
         $refund_data = [
-            'Currency' => 'EUR',
+            'Currency' => $currency,
             'AmountCredit' => $amount,
-            'Invoice' => 123,
+            'Invoice' => $invoice,
             'OriginalTransactionKey' => $transactionKey,
             'Services' => [
                 'ServiceList' => [
                     [
-                        'Name' => 'ideal',
+                        'Name' => $service,
                         'Action' => 'Refund',
                     ]
                 ],
@@ -99,6 +111,9 @@ class BuckarooApi
 
     protected function getApiHost()
     {
-        return 'https://testcheckout.buckaroo.nl';
+        if ($this->testMode === true) {
+            return 'https://testcheckout.buckaroo.nl';
+        }
+        return 'https://checkout.buckaroo.nl';
     }
 }
