@@ -28,7 +28,7 @@
         "marshmallow/sluggable": "^1.4",
         "marshmallow/helpers": "^2.12",
         "marshmallow/commands": "^1.2",
-        "marshmallow/nova-tinymce": "^2.0",
+        "marshmallow/nova-tinymce": "^2.1",
         "http-interop/http-factory-guzzle": "^1.2.0",
         "multisafepay/php-sdk": "^5.4.0",
         "stripe/stripe-php": "^7.87.0",
