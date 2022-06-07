@@ -19,7 +19,8 @@ trait Payable
         PaymentType $paymentType,
         $testPayment = null,
         $apiKey = null,
-        callable $extraPaymentDataCallback = null
+        callable $extraPaymentDataCallback = null,
+        callable $extraPaymentModifier = null,
     ) {
         if (!$this->paymentAllowed()) {
             throw new Exception("Payment is not allowed at this point");
@@ -30,7 +31,8 @@ trait Payable
             $paymentType,
             $testPayment,
             $apiKey,
-            $extraPaymentDataCallback
+            $extraPaymentDataCallback,
+            $extraPaymentModifier
         );
     }
 

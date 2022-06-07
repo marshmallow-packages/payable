@@ -29,7 +29,8 @@ class Provider
         PaymentType $paymentType,
         $testPayment = null,
         $api_key = null,
-        callable $extraPaymentDataCallback = null
+        callable $extraPaymentDataCallback = null,
+        callable $extraPaymentModifier = null
     ): string {
         $this->payableModel = $payableModel;
         $this->paymentType = $paymentType;
@@ -51,6 +52,12 @@ class Provider
         $this->payment->update([
             'provider_id' => $this->getPaymentId(),
         ]);
+
+        if ($extraPaymentModifier) {
+            $extraPaymentModifier(
+                $this->payment->fresh()
+            );
+        }
 
         return $this->getPaymentUrl();
     }
