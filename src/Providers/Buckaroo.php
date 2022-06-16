@@ -143,6 +143,32 @@ class Buckaroo extends Provider implements PaymentProviderContract
         return $response;
     }
 
+    public function stopSubscription(string $subscription_guid, $test_mode = false)
+    {
+        $api = $this->getClient($test_mode);
+        $response = $api->createPayment(
+            endpoint: 'DataRequest',
+            payment_data: [
+                'Services' => [
+                    'ServiceList' => [
+                        [
+                            'Name' => 'Subscriptions',
+                            'Action' => 'StopSubscription',
+                            'Parameters' => [
+                                [
+                                    'Name' => 'SubscriptionGuid',
+                                    'Value' => $subscription_guid,
+                                ],
+                            ],
+                        ]
+                    ],
+                ],
+            ],
+        );
+
+        return $response;
+    }
+
     public function updateOrCreateBuckarooDebtor(BuckarooApi $api)
     {
         $api->createPayment(
