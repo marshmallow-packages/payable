@@ -58,6 +58,14 @@ class PayableTest
     {
         $cart = $this->getTestCart();
         $payment_type = $this->getPaymentType(Payable::BUCKAROO);
+
+        if ($this->recurring) {
+            return $cart->startRecurringPayment(
+                paymentType: $payment_type,
+                testPayment: $test
+            );
+        }
+
         return $cart->startPayment(
             paymentType: $payment_type,
             testPayment: $test,
