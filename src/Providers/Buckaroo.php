@@ -11,6 +11,7 @@ use Mollie\Laravel\Wrappers\MollieApiWrapper;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
 use Marshmallow\Payable\Resources\PaymentRefund;
 use Mollie\Api\Resources\Payment as MolliePayment;
+use Marshmallow\Payable\Traits\BuckarooSubscriptions;
 use Marshmallow\Payable\Services\Buckaroo\BuckarooApi;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
@@ -56,6 +57,165 @@ class Buckaroo extends Provider implements PaymentProviderContract
                 ],
             ],
         ]);
+    }
+
+    public function createRecurringPayment()
+    {
+        if (!in_array(BuckarooSubscriptions::class, class_uses($this->payableModel), true)) {
+            throw new Exception(get_class($this->payableModel) . ' should implement the BuckarooSubscriptions trait.', 1);
+        }
+
+        $api = $this->getClient($this->testPayment);
+
+        $start_date = $this->payableModel->getBuckarooSubscriptionStartDate();
+        $rate_plan_code = $this->payableModel->getBuckarooSubscriptionRatePlanCode();
+        $configuration_code = $this->payableModel->getBuckarooSubscriptionConfigurationCode();
+        $debtor_code = $this->payableModel->getBuckarooSubscriptionDebtorCode();
+
+        $subscription_model = $this->payableModel->buckarooSubscriptions()->create([
+            'start_date' => $start_date,
+            'configuration_code' => $configuration_code,
+            'rate_plan_code' => $rate_plan_code,
+            'debtor_code' => $debtor_code,
+        ]);
+
+        $this->updateOrCreateBuckarooDebtor($api);
+
+        $response = $api->createPayment(
+            endpoint: 'DataRequest',
+            payment_data: [
+                'Currency' => $this->getCurrencyIso4217Code(),
+                'ReturnURL' => $this->redirectUrl(),
+                'ReturnURLCancel' => $this->redirectUrl(),
+                'ReturnURLError' => $this->redirectUrl(),
+                'ReturnURLReject' => $this->redirectUrl(),
+                'PushURL' => $this->webhookUrl(),
+                'PushURLFailure' => $this->webhookUrl(),
+                'Services' => [
+                    'ServiceList' => [
+                        [
+                            'Name' => 'Subscriptions',
+                            'Action' => 'CreateSubscription',
+                            'Parameters' => [
+                                [
+                                    'Name' => 'StartDate',
+                                    'GroupType' => 'Addrateplan',
+                                    'GroupID' => '',
+                                    'Value' => $start_date->format('d-m-Y'),
+                                ],
+                                [
+                                    'Name' => 'RatePlanCode',
+                                    'GroupType' => 'Addrateplan',
+                                    'GroupID' => '',
+                                    'Value' => $rate_plan_code,
+                                ],
+                                [
+                                    'Name' => 'Code',
+                                    'GroupType' => 'Debtor',
+                                    'GroupID' => '',
+                                    'Value' => $debtor_code,
+                                ],
+                                [
+                                    'Name' => 'ConfigurationCode',
+                                    'Value' => $configuration_code,
+                                ]
+                            ],
+                        ]
+                    ],
+                ],
+            ],
+        );
+
+        $subscription_guid = collect(Arr::get($response, 'Services.0.Parameters'))->mapWithKeys(function ($values) {
+            return [$values['Name'] => $values['Value']];
+        })->toArray();
+
+        $subscription_model->update([
+            'subscription_guid' => Arr::get($subscription_guid, 'SubscriptionGuid'),
+            'subscriptions' => Arr::get($response, 'Services.0.Parameters'),
+            'services' => Arr::get($response, 'Services'),
+            'custom_parameters' => Arr::get($response, 'CustomParameters'),
+            'additional_parameters' => Arr::get($response, 'AdditionalParameters'),
+            'request_errors' => Arr::get($response, 'RequestErrors'),
+            'is_test' => Arr::get($response, 'IsTest'),
+        ]);
+
+        return $response;
+    }
+
+    public function stopSubscription(string $subscription_guid, $test_mode = false)
+    {
+        $api = $this->getClient($test_mode);
+        $response = $api->createPayment(
+            endpoint: 'DataRequest',
+            payment_data: [
+                'Services' => [
+                    'ServiceList' => [
+                        [
+                            'Name' => 'Subscriptions',
+                            'Action' => 'StopSubscription',
+                            'Parameters' => [
+                                [
+                                    'Name' => 'SubscriptionGuid',
+                                    'Value' => $subscription_guid,
+                                ],
+                            ],
+                        ]
+                    ],
+                ],
+            ],
+        );
+
+        return $response;
+    }
+
+    public function updateOrCreateBuckarooDebtor(BuckarooApi $api)
+    {
+        $api->createPayment(
+            endpoint: 'DataRequest',
+            payment_data: [
+                'Services' => [
+                    'ServiceList' => [
+                        [
+                            'Name' => 'CreditManagement3',
+                            'Action' => 'AddOrUpdateDebtor',
+                            'Parameters' => [
+                                [
+                                    'Name' => 'Code',
+                                    'GroupType' => 'Debtor',
+                                    'GroupID' => '',
+                                    'Value' => $this->payableModel->getBuckarooSubscriptionDebtorCode(),
+                                ],
+                                [
+                                    'Name' => 'Culture',
+                                    'GroupType' => 'Person',
+                                    'GroupID' => '',
+                                    'Value' => $this->payableModel->getBuckarooSubscriptionLocale(),
+                                ],
+                                [
+                                    'Name' => 'FirstName',
+                                    'GroupType' => 'Person',
+                                    'GroupID' => '',
+                                    'Value' => $this->payableModel->getFirstName(),
+                                ],
+                                [
+                                    'Name' => 'LastName',
+                                    'GroupType' => 'Person',
+                                    'GroupID' => '',
+                                    'Value' => $this->payableModel->getLastName(),
+                                ],
+                                [
+                                    'Name' => 'Email',
+                                    'GroupType' => 'Email',
+                                    'GroupID' => '',
+                                    'Value' => $this->payableModel->getEmailAddress(),
+                                ],
+                            ],
+                        ]
+                    ],
+                ],
+            ],
+        );
     }
 
     public function refund(Payment $payment, int $amount)
@@ -146,7 +306,7 @@ class Buckaroo extends Provider implements PaymentProviderContract
         $status = $this->convertStatus(
             Arr::get($payment, 'Status.Code.Code')
         );
-        $paid_amount = intval(floatval(Arr::get($payment, 'AmountDebit')) * 100) ;
+        $paid_amount = intval(floatval(Arr::get($payment, 'AmountDebit')) * 100);
         return new PaymentStatusResponse($status, $paid_amount);
     }
 
