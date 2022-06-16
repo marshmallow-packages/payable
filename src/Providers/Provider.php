@@ -23,6 +23,7 @@ class Provider
     protected $provider_payment_object;
     protected $payment_info_result;
     protected $extra_payment_data_callback;
+    protected $is_recurring = false;
 
     public function preparePayment(
         Model $payableModel,
@@ -48,7 +49,8 @@ class Provider
             'start_ip' => request()->ip(),
         ]);
 
-        $this->provider_payment_object = $this->createPayment($api_key);
+        $method = ($this->is_recurring) ? 'createRecurringPayment' : 'createPayment';
+        $this->provider_payment_object = $this->{$method}($api_key);
         $this->payment->update([
             'provider_id' => $this->getPaymentId(),
         ]);
@@ -59,7 +61,19 @@ class Provider
             );
         }
 
+        if ($this->is_recurring) {
+            return 'success';
+        }
         return $this->getPaymentUrl();
+    }
+
+    public function prepareRecurringPayment(
+        ...$params
+    ): string {
+        $this->is_recurring = true;
+        return $this->preparePayment(
+            ...$params
+        );
     }
 
     public function handleReturn(Payment $payment, Request $request): RedirectResponse
