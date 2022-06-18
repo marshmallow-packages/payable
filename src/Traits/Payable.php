@@ -40,10 +40,19 @@ trait Payable
         );
     }
 
-    public function startRecurringPayment(...$params)
-    {
+    public function startRecurringPayment(
+        PaymentType $paymentType,
+        $testPayment = null,
+        $apiKey = null,
+        callable $extraPaymentDataCallback = null,
+        callable $extraPaymentModifier = null,
+    ) {
         return $this->startPayment(
-            ...$params,
+            paymentType: $paymentType,
+            testPayment: $testPayment,
+            apiKey: $apiKey,
+            extraPaymentDataCallback: $extraPaymentDataCallback,
+            extraPaymentModifier: $extraPaymentModifier,
             is_recurring: true
         );
     }
