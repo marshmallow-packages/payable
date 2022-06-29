@@ -3,6 +3,7 @@
 namespace Marshmallow\Payable;
 
 use Marshmallow\Payable\Payable;
+use Marshmallow\Addressable\Models\AddressType;
 
 class PayableTest
 {
@@ -87,11 +88,46 @@ class PayableTest
     protected function getTestCart()
     {
         $user = config('cart.models.user')::first();
+
+        if ($user->addresses->count() == 0) {
+            $user->addresses()->create([
+                'address_type_id' => AddressType::where('type', 'INVOICE')->first()->id,
+                'name' => 'Stef van Esch',
+                'first_name' => 'Stef',
+                'last_name' => 'van Esch',
+                'address_line_1' => 'Da Costastraat',
+                'address_line_2' => '8',
+                'address_line_3' => null,
+                'address_line_4' => null,
+                'city' => 'Alphen aan den Rijn',
+                'state' => 'Zuid-Holland',
+                'postal_code' => '2406AT',
+                'country_id' => null,
+            ]);
+            $user->addresses()->create([
+                'address_type_id' => AddressType::where('type', 'SHIPPING')->first()->id,
+                'name' => 'Stef van Esch',
+                'first_name' => 'Stef',
+                'last_name' => 'van Esch',
+                'address_line_1' => 'Da Costastraat',
+                'address_line_2' => '8',
+                'address_line_3' => null,
+                'address_line_4' => null,
+                'city' => 'Alphen aan den Rijn',
+                'state' => 'Zuid-Holland',
+                'postal_code' => '2406AT',
+                'country_id' => null,
+            ]);
+        }
+
         $product = config('cart.models.product')::first();
 
         $cart = config('cart.models.shopping_cart')::completelyNew();
         $cart->connectUser($user);
         $cart->add($product, 4);
+        $cart->getCustomer()->update([
+            'email' => 'stef@marshmallow.dev',
+        ]);
 
         return $cart;
     }
