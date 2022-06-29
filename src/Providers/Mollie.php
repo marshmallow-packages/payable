@@ -27,6 +27,10 @@ class Mollie extends Provider implements PaymentProviderContract
 
     public function createPayment($api_key = null)
     {
+        if (config('payable.use_order_payments') === true) {
+            return $this->createOrder($api_key);
+        }
+
         $api = $this->getClient($api_key);
 
         return $api->payments->create([
@@ -41,6 +45,92 @@ class Mollie extends Provider implements PaymentProviderContract
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
         ]);
+    }
+
+    public function createOrder($api_key = null)
+    {
+        $api = $this->getClient($api_key);
+
+        $payload = [
+            'amount' => [
+                'currency' => $this->getCurrencyIso4217Code(),
+                'value' => $this->formatCentToDecimalString(
+                    $this->getPayableAmount()
+                ),
+            ],
+            'orderNumber' => $this->getPayableIdentifier(),
+            'lines' => [],
+            'billingAddress' => [
+                'organizationName' => $this->payableModel->getBillingOrganizationName(),
+                'title' => $this->payableModel->getBillingTitle(),
+                'givenName' => $this->payableModel->getBillingGivenName(), //required
+                'familyName' => $this->payableModel->getBillingFamilyName(), //required
+                'email' => $this->payableModel->getBillingEmailaddress(), //required
+                'phone' => $this->payableModel->getBillingPhonenumber(),
+                'streetAndNumber' => $this->payableModel->getBillingStreetAndNumber(), //required
+                'streetAdditional' => $this->payableModel->getBillingStreetAdditional(),
+                'postalCode' => $this->payableModel->getBillingPostalCode(),
+                'city' => $this->payableModel->getBillingCity(), //required
+                'region' => $this->payableModel->getBillingRegion(),
+                'country' => $this->payableModel->getBillingCountry(), //required
+            ],
+            'shippingAddress' => [
+                'organizationName' => $this->payableModel->getShippingOrganizationName(),
+                'title' => $this->payableModel->getShippingTitle(),
+                'givenName' => $this->payableModel->getShippingGivenName(), //required
+                'familyName' => $this->payableModel->getShippingFamilyName(), //required
+                'email' => $this->payableModel->getShippingEmailaddress(), //required
+                'phone' => $this->payableModel->getShippingPhonenumber(),
+                'streetAndNumber' => $this->payableModel->getShippingStreetAndNumber(), //required
+                'streetAdditional' => $this->payableModel->getShippingStreetAdditional(),
+                'postalCode' => $this->payableModel->getShippingPostalCode(),
+                'city' => $this->payableModel->getShippingCity(), //required
+                'region' => $this->payableModel->getShippingRegion(),
+                'country' => $this->payableModel->getShippingCountry(), //required
+            ],
+            'consumerDateOfBirth' => $this->payableModel->getConsumerDateOfBirth(),
+            // 'description' => $this->getPayableDescription(),
+            'redirectUrl' => $this->redirectUrl(),
+            'webhookUrl' => $this->webhookUrl(),
+            'locale' => config('payable.locale'),
+        ];
+
+        $this->payableModel->items->each(function ($item) use (&$payload) {
+
+            $payload['lines'][] = [
+                'type' => 'physical', //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
+                'name' => $item->description,
+                'quantity' => $item->quantity,
+                'discountAmount' => [
+                    'currency' => $this->getCurrencyIso4217Code(),
+                    'value' => $this->formatCentToDecimalString(
+                        0
+                    ),
+                ],
+                'unitPrice' => [
+                    'currency' => $this->getCurrencyIso4217Code(),
+                    'value' => $this->formatCentToDecimalString(
+                        $item->display_price
+                    ),
+                ],
+                'totalAmount' => [
+                    'currency' => $this->getCurrencyIso4217Code(),
+                    'value' => $this->formatCentToDecimalString(
+                        $item->getTotalAmount()
+                    ),
+                ],
+                'vatRate' => (string) $item->vatrate->rate,
+                'vatAmount' =>
+                [
+                    'currency' => $this->getCurrencyIso4217Code(),
+                    'value' => $this->formatCentToDecimalString(
+                        $item->getTotalVatAmount()
+                    ),
+                ],
+            ];
+        });
+
+        return $api->orders->create($payload);
     }
 
     public function refund(Payment $payment, int $amount)
@@ -99,6 +189,7 @@ class Mollie extends Provider implements PaymentProviderContract
                 break;
 
             case 'paid':
+            case 'authorized':
                 return Payment::STATUS_PAID;
                 break;
 
@@ -122,6 +213,10 @@ class Mollie extends Provider implements PaymentProviderContract
 
     public function getPaymentStatus(Payment $payment)
     {
+        if (config('payable.use_order_payments') === true) {
+            return MollieApi::api()->orders->get($payment->provider_id);
+        }
+
         return MollieApi::api()->payments->get($payment->provider_id);
     }
 
