@@ -4,6 +4,8 @@ return [
 
     'test_payments' => env('PAYABLE_TEST_PAYMENTS', false),
 
+    'use_order_payments' => false,
+
     'shared_with_expose' => env('SHARED_WITH_EXPOSE', false),
 
     'routes' => [
