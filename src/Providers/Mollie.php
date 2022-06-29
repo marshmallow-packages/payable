@@ -189,6 +189,7 @@ class Mollie extends Provider implements PaymentProviderContract
                 break;
 
             case 'paid':
+            case 'authorized':
                 return Payment::STATUS_PAID;
                 break;
 
@@ -212,6 +213,10 @@ class Mollie extends Provider implements PaymentProviderContract
 
     public function getPaymentStatus(Payment $payment)
     {
+        if (config('payable.use_order_payments') === true) {
+            return MollieApi::api()->orders->get($payment->provider_id);
+        }
+
         return MollieApi::api()->payments->get($payment->provider_id);
     }
 
