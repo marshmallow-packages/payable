@@ -36,7 +36,7 @@ class Buckaroo extends Provider implements PaymentProviderContract
             'AmountDebit' => $this->getPayableAmount() / 100,
             'Invoice' => $this->getPayableDescription(),
             'ReturnURL' => $this->redirectUrl(),
-            'ReturnURLCancel' => $this->redirectUrl(),
+            'ReturnURLCancel' => $this->cancelUrl(),
             'ReturnURLError' => $this->redirectUrl(),
             'ReturnURLReject' => $this->redirectUrl(),
             'PushURL' => $this->webhookUrl(),
@@ -146,7 +146,7 @@ class Buckaroo extends Provider implements PaymentProviderContract
         $status = $this->convertStatus(
             Arr::get($payment, 'Status.Code.Code')
         );
-        $paid_amount = intval(floatval(Arr::get($payment, 'AmountDebit')) * 100) ;
+        $paid_amount = intval(floatval(Arr::get($payment, 'AmountDebit')) * 100);
         return new PaymentStatusResponse($status, $paid_amount);
     }
 

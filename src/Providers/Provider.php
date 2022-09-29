@@ -195,6 +195,16 @@ class Provider
         ]);
     }
 
+    protected function cancelUrl(): string
+    {
+        return route(
+            config('payable.routes.payment_canceled'),
+            [
+                'pid' => $this->payment->id,
+            ]
+        );
+    }
+
     protected function getCurrencyIso4217Code(): string
     {
         return 'EUR';
