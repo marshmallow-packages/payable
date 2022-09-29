@@ -41,7 +41,7 @@ class Stripe extends Provider implements PaymentProviderContract
             'locale' => config('payable.locale_iso_639'),
             'mode' => 'payment',
             'success_url' => $this->redirectUrl(),
-            'cancel_url' => $this->redirectUrl(),
+            'cancel_url' => $this->cancelUrl(),
             'customer_email' => $this->payableModel->getCustomerEmail(),
         ]);
     }
