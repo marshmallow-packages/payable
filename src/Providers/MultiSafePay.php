@@ -10,8 +10,10 @@ use Marshmallow\Payable\Models\Payment;
 use MultiSafepay\Api\Transactions\OrderRequest;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
+use MultiSafepay\Api\Transactions\OrderRequest\Arguments\ShoppingCart;
 use MultiSafepay\Api\Transactions\OrderRequest\Arguments\PluginDetails;
 use MultiSafepay\Api\Transactions\OrderRequest\Arguments\PaymentOptions;
+use MultiSafepay\Api\Transactions\OrderRequest\Arguments\ShoppingCart\Item;
 
 class MultiSafePay extends Provider implements PaymentProviderContract
 {
@@ -46,6 +48,29 @@ class MultiSafePay extends Provider implements PaymentProviderContract
             ->addMoney($amount)
             ->addPluginDetails($pluginDetails)
             ->addPaymentOptions($paymentOptions);
+
+        if (config('payable.use_order_payments') === true) {
+
+            $items = [];
+            $this->payableModel->items->each(function ($item) use (&$items) {
+                $items[] = (new Item())
+                    ->addName($item->description)
+                    ->addUnitPrice(new Money($item->display_price, 'EUR')) // Amount must be in cents
+                    ->addQuantity($item->quantity)
+                    ->addDescription($item->description)
+                    ->addTaxRate($item->vatrate->rate)
+                    ->addTaxTableSelector(
+                        $item->vatrate->name
+                    )
+                    ->addMerchantItemId(
+                        $item->product_id ?? $item->type
+                    );
+            });
+
+            $orderRequest = $orderRequest->addShoppingCart(new ShoppingCart($items));
+        }
+
+
 
         return $multiSafepaySdk->getTransactionManager()->create($orderRequest);
     }

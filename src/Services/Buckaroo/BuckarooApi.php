@@ -9,13 +9,12 @@ class BuckarooApi
 {
     public function __construct(
         protected $testMode = false
-    )
-    {
+    ) {
         //
     }
-    public function createPayment(array $payment_data)
+    public function createPayment(array $payment_data, string $endpoint = 'Transaction')
     {
-        $path = "{$this->getApiHost()}/json/Transaction";
+        $path = "{$this->getApiHost()}/json/{$endpoint}";
 
         $response = Http::withHeaders([
             'Authorization' => $this->createAuthorizationHeader(
@@ -33,8 +32,7 @@ class BuckarooApi
         string $invoice,
         string $service,
         string $currency = 'EUR',
-    )
-    {
+    ) {
         $refund_data = [
             'Currency' => $currency,
             'AmountCredit' => $amount,
@@ -60,7 +58,6 @@ class BuckarooApi
         ])->post($path, $refund_data);
 
         return $response->json();
-
     }
 
     public function getPaymentStatus(string $transactionKey)

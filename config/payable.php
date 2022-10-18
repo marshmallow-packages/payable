@@ -4,6 +4,8 @@ return [
 
     'test_payments' => env('PAYABLE_TEST_PAYMENTS', false),
 
+    'use_order_payments' => false,
+
     'shared_with_expose' => env('SHARED_WITH_EXPOSE', false),
 
     'routes' => [
@@ -56,6 +58,15 @@ return [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook' => env('STRIPE_WEBHOOK_SECRET'),
+
+        'event_types' => [
+            'payment_intent.succeeded',
+            'payment_intent.requires_action',
+            'payment_intent.processing',
+            'payment_intent.payment_failed',
+            'payment_intent.canceled',
+            'payment_intent.amount_capturable_updated',
+        ],
     ],
 
     'multisafepay' => [

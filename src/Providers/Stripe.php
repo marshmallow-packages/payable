@@ -73,20 +73,11 @@ class Stripe extends Provider implements PaymentProviderContract
             config('payable.stripe.webhook')
         );
 
-
-        switch ($event->type) {
-            case 'payment_intent.succeeded':
-            case 'payment_intent.requires_action':
-            case 'payment_intent.processing':
-            case 'payment_intent.payment_failed':
-            case 'payment_intent.canceled':
-            case 'payment_intent.amount_capturable_updated':
-                return $this->convertWebhookDataToPaymentModel($request);
-                break;
-
-            default:
-                throw new Exception("Received unknown event type {$event->type}");
+        if (in_array($event->type, config('payable.stripe.event_types'))) {
+            return $this->convertWebhookDataToPaymentModel($request);
         }
+
+        throw new Exception("Received unknown event type {$event->type}");
     }
 
     protected function convertWebhookDataToPaymentModel(Request $request): Payment

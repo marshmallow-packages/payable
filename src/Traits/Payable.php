@@ -21,18 +21,39 @@ trait Payable
         $apiKey = null,
         callable $extraPaymentDataCallback = null,
         callable $extraPaymentModifier = null,
+        bool $is_recurring = false,
     ) {
         if (!$this->paymentAllowed()) {
             throw new Exception("Payment is not allowed at this point");
         }
         $provider = PayableHelper::getProvider($paymentType);
-        return $provider->preparePayment(
+
+        $method = ($is_recurring) ? 'prepareRecurringPayment' : 'preparePayment';
+
+        return $provider->{$method}(
             $this,
             $paymentType,
             $testPayment,
             $apiKey,
             $extraPaymentDataCallback,
             $extraPaymentModifier
+        );
+    }
+
+    public function startRecurringPayment(
+        PaymentType $paymentType,
+        $testPayment = null,
+        $apiKey = null,
+        callable $extraPaymentDataCallback = null,
+        callable $extraPaymentModifier = null,
+    ) {
+        return $this->startPayment(
+            paymentType: $paymentType,
+            testPayment: $testPayment,
+            apiKey: $apiKey,
+            extraPaymentDataCallback: $extraPaymentDataCallback,
+            extraPaymentModifier: $extraPaymentModifier,
+            is_recurring: true
         );
     }
 
