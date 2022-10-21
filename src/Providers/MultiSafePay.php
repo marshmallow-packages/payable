@@ -7,12 +7,18 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use MultiSafepay\ValueObject\Money;
 use Marshmallow\Payable\Models\Payment;
+use MultiSafepay\ValueObject\IpAddress;
+use MultiSafepay\ValueObject\Customer\Address;
+use MultiSafepay\ValueObject\Customer\Country;
 use MultiSafepay\Api\Transactions\OrderRequest;
+use MultiSafepay\ValueObject\Customer\PhoneNumber;
+use MultiSafepay\ValueObject\Customer\EmailAddress;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 use MultiSafepay\Api\Transactions\OrderRequest\Arguments\ShoppingCart;
 use MultiSafepay\Api\Transactions\OrderRequest\Arguments\PluginDetails;
 use MultiSafepay\Api\Transactions\OrderRequest\Arguments\PaymentOptions;
+use MultiSafepay\Api\Transactions\OrderRequest\Arguments\CustomerDetails;
 use MultiSafepay\Api\Transactions\OrderRequest\Arguments\ShoppingCart\Item;
 
 class MultiSafePay extends Provider implements PaymentProviderContract
@@ -67,10 +73,29 @@ class MultiSafePay extends Provider implements PaymentProviderContract
                     );
             });
 
-            $orderRequest = $orderRequest->addShoppingCart(new ShoppingCart($items));
+            $payabel_model = $this->payableModel;
+
+            $address = (new Address())
+                ->addStreetName($payabel_model->getShippingStreetName())
+                ->addHouseNumber($payabel_model->getShippingHouseNumber())
+                ->addZipCode($payabel_model->getShippingZipCode())
+                ->addCity($payabel_model->getShippingCity())
+                ->addCountry(new Country($payabel_model->getShippingCountry()));
+
+            $customer = (new CustomerDetails())
+                ->addFirstName($payabel_model->getCustomerFirstName())
+                ->addLastName($payabel_model->getCustomerLastName())
+                ->addAddress($address)
+                ->addEmailAddress(new EmailAddress($payabel_model->getCustomerEmail()))
+                ->addPhoneNumber(new PhoneNumber($payabel_model->getCustomerPhoneNumber()))
+                ->addLocale($payabel_model->getCustomerLocale())
+                ->addUserAgent(request()->header('User-Agent'))
+                ->addForwardedIp(new IpAddress(request()->ip()));
+
+            $orderRequest = $orderRequest->addCustomer($customer)
+                ->addDelivery($customer)
+                ->addShoppingCart(new ShoppingCart($items));
         }
-
-
 
         return $multiSafepaySdk->getTransactionManager()->create($orderRequest);
     }
