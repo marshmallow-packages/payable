@@ -37,7 +37,7 @@ class Buckaroo extends Provider implements PaymentProviderContract
             'AmountDebit' => $this->getPayableAmount() / 100,
             'Invoice' => $this->getPayableDescription(),
             'ReturnURL' => $this->redirectUrl(),
-            'ReturnURLCancel' => $this->redirectUrl(),
+            'ReturnURLCancel' => $this->cancelUrl(),
             'ReturnURLError' => $this->redirectUrl(),
             'ReturnURLReject' => $this->redirectUrl(),
             'PushURL' => $this->webhookUrl(),
