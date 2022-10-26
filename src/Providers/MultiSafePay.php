@@ -40,7 +40,7 @@ class MultiSafePay extends Provider implements PaymentProviderContract
         $paymentOptions = (new PaymentOptions)
             ->addNotificationUrl($this->webhookUrl())
             ->addRedirectUrl($this->redirectUrl())
-            ->addCancelUrl($this->cancelUrl())
+            ->addCancelUrl($this->redirectUrl())
             ->addCloseWindow(true);
 
         $pluginDetails = (new PluginDetails)

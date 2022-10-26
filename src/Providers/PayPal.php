@@ -52,7 +52,7 @@ class PayPal extends Provider implements PaymentProviderContract
             ]],
             "application_context" => [
                 "cancel_url" => $this->redirectUrl(),
-                "return_url" => $this->cancelUrl()
+                "return_url" => $this->redirectUrl()
             ]
         ];
 
