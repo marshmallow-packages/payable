@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Select;
 use Marshmallow\TagsField\Tags;
-use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Fields\BelongsTo;
@@ -82,10 +81,10 @@ class PaymentType extends Resource
     /**
      * Get the fields displayed by the resource.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
+     * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-    public function fields(NovaRequest $request)
+    public function fields(Request $request)
     {
         return [
             BelongsTo::make(__('Provider'), 'provider', config('payable.nova.resources.payment_provider'))
@@ -119,10 +118,10 @@ class PaymentType extends Resource
     /**
      * Get the cards available for the request.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
+     * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-    public function cards(NovaRequest $request)
+    public function cards(Request $request)
     {
         return [];
     }
@@ -130,10 +129,10 @@ class PaymentType extends Resource
     /**
      * Get the filters available for the resource.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
+     * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-    public function filters(NovaRequest $request)
+    public function filters(Request $request)
     {
         return [];
     }
@@ -141,10 +140,10 @@ class PaymentType extends Resource
     /**
      * Get the lenses available for the resource.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
+     * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-    public function lenses(NovaRequest $request)
+    public function lenses(Request $request)
     {
         return [];
     }
@@ -152,10 +151,10 @@ class PaymentType extends Resource
     /**
      * Get the actions available for the resource.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
+     * @param  \Illuminate\Http\Request  $request
      * @return array
      */
-    public function actions(NovaRequest $request)
+    public function actions(Request $request)
     {
         return [];
     }
