@@ -31,6 +31,11 @@ trait PayableWithItems
         return $this->invoiceAddress->last_name;
     }
 
+    public function getCustomerPhonenumber()
+    {
+        return $this->customer->phone_number;
+    }
+
     public function getBillingEmailaddress()
     {
         return $this->getCustomerEmail();
