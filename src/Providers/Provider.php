@@ -169,7 +169,7 @@ class Provider
 
     protected function getPayableIdentifier()
     {
-        return $this->payableModel->id;
+        return $this->payableModel->getPayableDescription() ?? $this->payableModel->id;
     }
 
     public function isTestPayment($testPayment = null): bool
