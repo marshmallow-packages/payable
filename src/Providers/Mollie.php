@@ -4,6 +4,7 @@ namespace Marshmallow\Payable\Providers;
 
 use Exception;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Marshmallow\Payable\Models\Payment;
 use Mollie\Laravel\Wrappers\MollieApiWrapper;
@@ -150,14 +151,26 @@ class Mollie extends Provider implements PaymentProviderContract
     public function refund(Payment $payment, int $amount)
     {
         $api = $this->getClient();
-        $mollie_payment = $api->payments->get($payment->provider_id);
 
-        $result = $api->payments->refund($mollie_payment, [
-            'amount' => [
-                'currency' => $this->getCurrencyIso4217Code(),
-                'value' => $this->formatCentToDecimalString($amount),
-            ],
-        ]);
+        if (Str::of($payment->provider_id)->startsWith('tr_')) {
+            /** Refund payments */
+            $mollie_payment = $api->payments->get($payment->provider_id);
+            $result = $api->payments->refund($mollie_payment, [
+                'amount' => [
+                    'currency' => $this->getCurrencyIso4217Code(),
+                    'value' => $this->formatCentToDecimalString($amount),
+                ],
+            ]);
+        } else {
+            /** Refund orders */
+            $mollie_payment = $api->orders->get($payment->provider_id);
+            $result = $api->orders->refund($mollie_payment, [
+                'amount' => [
+                    'currency' => $this->getCurrencyIso4217Code(),
+                    'value' => $this->formatCentToDecimalString($amount),
+                ],
+            ]);
+        }
 
         return new PaymentRefund(
             provider_id: $result->id,
