@@ -134,11 +134,21 @@ class Mollie extends Provider implements PaymentProviderContract
         return $api->orders->create($payload);
     }
 
+    protected function isPayment($payment_id)
+    {
+        return Str::of($payment_id)->startsWith('tr_');
+    }
+
+    protected function isOrder($payment_id)
+    {
+        return Str::of($payment_id)->startsWith('ord_');
+    }
+
     public function refund(Payment $payment, int $amount)
     {
         $api = $this->getClient();
 
-        if (Str::of($payment->provider_id)->startsWith('tr_')) {
+        if ($this->isPayment($payment->provider_id)) {
             /** Refund payments */
             $mollie_payment = $api->payments->get($payment->provider_id);
             $result = $api->payments->refund($mollie_payment, [
@@ -226,7 +236,7 @@ class Mollie extends Provider implements PaymentProviderContract
 
     public function getPaymentStatus(Payment $payment)
     {
-        if (config('payable.use_order_payments') === true) {
+        if ($this->isOrder($payment->provider_id)) {
             return MollieApi::api()->orders->get($payment->provider_id);
         }
 
