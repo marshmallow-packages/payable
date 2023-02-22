@@ -10,7 +10,6 @@ use Marshmallow\Payable\Models\Payment;
 use Mollie\Laravel\Wrappers\MollieApiWrapper;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
 use Marshmallow\Payable\Resources\PaymentRefund;
-use Mollie\Api\Resources\Payment as MolliePayment;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
@@ -97,15 +96,31 @@ class Mollie extends Provider implements PaymentProviderContract
         ];
 
         $this->payableModel->items->each(function ($item) use (&$payload) {
+            $type = match ($item->type) {
+                'DISCOUNT' => 'discount',
+                'SHIPPING' => 'shipping_fee',
+                'PRODUCT' => 'physical',
+                default => 'physical',
+            };
+
+            $discount_amount = 0;
+            $total_amount = $item->getTotalAmount();
+            $vat_amount = $item->getTotalVatAmount();
+
+            if ($item->discount_including_vat && $item->discount_including_vat > 0) {
+                $discount_amount = ($item->price_including_vat - $item->discount_including_vat) * $item->quantity;
+                $total_amount = $total_amount - $discount_amount;
+                $vat_amount = ($item->discount_vat_amount * $item->quantity);
+            }
 
             $payload['lines'][] = [
-                'type' => 'physical', //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
+                'type' => $type, //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
                 'name' => $item->description,
                 'quantity' => $item->quantity,
                 'discountAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
                     'value' => $this->formatCentToDecimalString(
-                        0
+                        $discount_amount
                     ),
                 ],
                 'unitPrice' => [
@@ -117,15 +132,14 @@ class Mollie extends Provider implements PaymentProviderContract
                 'totalAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
                     'value' => $this->formatCentToDecimalString(
-                        $item->getTotalAmount()
+                        $total_amount
                     ),
                 ],
                 'vatRate' => (string) $item->vatrate->rate,
-                'vatAmount' =>
-                [
+                'vatAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
                     'value' => $this->formatCentToDecimalString(
-                        $item->getTotalVatAmount()
+                        $vat_amount
                     ),
                 ],
             ];
@@ -248,6 +262,7 @@ class Mollie extends Provider implements PaymentProviderContract
         $payment = $this->getPaymentStatus($payment);
         $status = $this->convertStatus($payment->status);
         $paid_amount = intval(floatval($payment->amount->value) * 100);
+
         return new PaymentStatusResponse($status, $paid_amount);
     }
 
@@ -263,34 +278,38 @@ class Mollie extends Provider implements PaymentProviderContract
     public function getCanceledAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return Carbon::parse($info->canceledAt);
     }
 
     public function getExpiresAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return Carbon::parse($info->expiresAt);
     }
 
     public function getFailedAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return Carbon::parse($info->failedAt);
     }
 
     public function getPaidAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return Carbon::parse($info->paidAt);
     }
 
     protected function getPaymentDetail(Payment $payment, string $column): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
-        if (!isset($info->details)) {
+        if (! isset($info->details)) {
             return null;
         }
-        if (!isset($info->details->{$column})) {
+        if (! isset($info->details->{$column})) {
             return null;
         }
 
@@ -315,6 +334,7 @@ class Mollie extends Provider implements PaymentProviderContract
     public function getPaymentTypeName(Payment $payment): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return $info->method;
     }
 }
