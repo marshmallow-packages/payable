@@ -306,10 +306,10 @@ class Mollie extends Provider implements PaymentProviderContract
     protected function getPaymentDetail(Payment $payment, string $column): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
-        if (! isset($info->details)) {
+        if (!isset($info->details)) {
             return null;
         }
-        if (! isset($info->details->{$column})) {
+        if (!isset($info->details->{$column})) {
             return null;
         }
 
