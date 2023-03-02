@@ -148,6 +148,19 @@ class Mollie extends Provider implements PaymentProviderContract
         return $api->orders->create($payload);
     }
 
+    public function createShipment(Payment $payment, array $lines = [], $api_key = null)
+    {
+        $api = $this->getClient($api_key);
+        $order = $api->orders->get($payment->provider_id);
+        if (!empty($lines)) {
+            return $order->createShipment([
+                'lines' => $lines,
+            ]);
+        }
+
+        return $order->shipAll();
+    }
+
     protected function isPayment($payment_id)
     {
         return Str::of($payment_id)->startsWith('tr_');
@@ -306,10 +319,10 @@ class Mollie extends Provider implements PaymentProviderContract
     protected function getPaymentDetail(Payment $payment, string $column): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
-        if (! isset($info->details)) {
+        if (!isset($info->details)) {
             return null;
         }
-        if (! isset($info->details->{$column})) {
+        if (!isset($info->details->{$column})) {
             return null;
         }
 
