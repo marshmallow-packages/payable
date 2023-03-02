@@ -148,6 +148,19 @@ class Mollie extends Provider implements PaymentProviderContract
         return $api->orders->create($payload);
     }
 
+    public function createShipment(Payment $payment, array $lines = [], $api_key = null)
+    {
+        $api = $this->getClient($api_key);
+        $order = $api->orders->get($payment->provider_id);
+        if (!empty($lines)) {
+            return $order->createShipment([
+                'lines' => $lines,
+            ]);
+        }
+
+        return $order->shipAll();
+    }
+
     protected function isPayment($payment_id)
     {
         return Str::of($payment_id)->startsWith('tr_');

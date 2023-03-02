@@ -95,6 +95,21 @@ class Payment extends Model
         ]);
     }
 
+    public function createShipment(array $lines = [])
+    {
+        $client = Payable::getProvider(
+            $this->type,
+        );
+
+        if (!method_exists($client, 'createShipment')) {
+            throw new Exception(
+                "`createShipment` is not implemented for " . get_class($client) . " yet."
+            );
+        }
+
+        return $client->createShipment($this, $lines);
+    }
+
     public function isOpen()
     {
         return $this->status === self::STATUS_OPEN;
