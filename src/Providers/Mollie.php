@@ -255,6 +255,10 @@ class Mollie extends Provider implements PaymentProviderContract
                 return Payment::STATUS_EXPIRED;
                 break;
 
+            case 'completed':
+                return Payment::STATUS_COMPLETED;
+                break;
+
             default:
                 throw new Exception("Unknown payment status {$status}");
                 break;

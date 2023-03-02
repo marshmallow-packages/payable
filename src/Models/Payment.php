@@ -28,6 +28,7 @@ class Payment extends Model
     const STATUS_EXPIRED = 'expired';
     const STATUS_REFUNDED = 'refunded';
     const STATUS_PENDING = 'pending';
+    const STATUS_COMPLETED = 'completed';
 
     protected $table = 'payments';
 
@@ -118,6 +119,11 @@ class Payment extends Model
     public function isPaid()
     {
         return $this->status === self::STATUS_PAID;
+    }
+
+    public function isCompleted()
+    {
+        return $this->status === self::STATUS_COMPLETED;
     }
 
     public function isFailed()
