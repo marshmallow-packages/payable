@@ -107,7 +107,9 @@ class Mollie extends Provider implements PaymentProviderContract
             $total_amount = $item->getTotalAmount();
             $vat_amount = $item->getTotalVatAmount();
 
-            if ($item->discount_including_vat && $item->discount_including_vat > 0) {
+            $has_price_difference = ($item->discount_including_vat !== $item->price_including_vat);
+
+            if ($has_price_difference && $item->discount_including_vat && $item->discount_including_vat > 0) {
                 $discount_amount = ($item->price_including_vat - $item->discount_including_vat) * $item->quantity;
                 $total_amount = $total_amount - $discount_amount;
                 $vat_amount = ($item->discount_vat_amount * $item->quantity);
