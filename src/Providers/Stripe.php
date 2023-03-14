@@ -113,12 +113,12 @@ class Stripe extends Provider implements PaymentProviderContract
         $session = $sessions->first();
 
         if (!$session) {
-            throw new Exception("Stripe session could not be found");
+            abort(404, "Stripe session could not be found");
         }
 
         $payment = config('payable.models.payment')::where('provider_id', $session->id)->first();
         if (!$payment) {
-            throw new Exception("Payment could not be found with the provided stripe session id.");
+            abort(404, "Payment could not be found with the provided stripe session id.");
         }
         return $payment;
     }
