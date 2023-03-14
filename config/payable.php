@@ -67,6 +67,10 @@ return [
             'payment_intent.canceled',
             'payment_intent.amount_capturable_updated',
         ],
+        'customer_event_types' => [
+            'customer.created',
+            'customer.updated',
+        ],
     ],
 
     'multisafepay' => [

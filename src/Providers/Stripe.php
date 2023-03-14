@@ -4,10 +4,12 @@ namespace Marshmallow\Payable\Providers;
 
 use Exception;
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use Stripe\Checkout\Session;
 use Stripe\Stripe as StripApi;
 use Marshmallow\Payable\Models\Payment;
+use Marshmallow\Payable\Events\ExternalCustomerModified;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
@@ -25,7 +27,7 @@ class Stripe extends Provider implements PaymentProviderContract
         $api_key = ($api_key) ? $api_key : config('payable.stripe.secret');
         StripApi::setApiKey($api_key);
 
-        return Session::create([
+        $session_data = [
             'payment_method_types' => $this->paymentType->vendor_type_options,
             'line_items' => [[
                 'data' => [],
@@ -42,8 +44,30 @@ class Stripe extends Provider implements PaymentProviderContract
             'mode' => 'payment',
             'success_url' => $this->redirectUrl(),
             'cancel_url' => $this->cancelUrl(),
-            'customer_email' => $this->payableModel->getCustomerEmail(),
-        ]);
+        ];
+
+        if ($this->payableModel?->id) {
+            $session_data['client_reference_id'] = $this->payableModel?->id;
+        }
+
+        $session_data['metadata'] = [
+            'payable_type' => $this->payableModel?->getMorphClass(),
+            'payable_id' => $this->payableModel?->id,
+            'customer_id' => $this->payableModel?->customer_id ?? '',
+        ];
+
+        if ($this->payableModel?->customer?->payable_external_id) {
+            $session_data['customer'] = $this->payableModel->customer->payable_external_id;
+            $session_data['customer_update'] = [
+                'name' => 'auto',
+                'address' => 'auto',
+            ];
+            $session_data['payment_intent_data']['setup_future_usage'] = 'off_session';
+        } elseif ($this->payableModel?->getCustomerEmail()) {
+            $session_data['customer_email'] = $this->payableModel->getCustomerEmail();
+        }
+
+        return Session::create($session_data);
     }
 
     public function getPaymentId()
@@ -75,27 +99,36 @@ class Stripe extends Provider implements PaymentProviderContract
 
         if (in_array($event->type, config('payable.stripe.event_types'))) {
             return $this->convertWebhookDataToPaymentModel($request);
+        } elseif (in_array($event->type, config('payable.stripe.customer_event_types'))) {
+            $payable_external_id = Arr::get($request->data, 'object.id');
+            $payload_data = Arr::get($request->data, 'object');
+            event(new ExternalCustomerModified($event->type, $payable_external_id, $payload_data));
+            abort(200);
         }
 
-        throw new Exception("Received unknown event type {$event->type}");
+        abort(404, "Received unknown event type {$event->type}");
     }
 
     protected function convertWebhookDataToPaymentModel(Request $request): Payment
     {
         $stripe = $this->getStripeClient();
+
+        $payment_intend_id = Arr::get($request->data, 'object.id');
+
         $sessions = $stripe->checkout->sessions->all([
-            'payment_intent' => $request->data['object']['id'],
+            'payment_intent' => $payment_intend_id,
             'limit' => 1,
         ]);
 
         $session = $sessions->first();
+
         if (!$session) {
-            throw new Exception("Stripe session could not be found");
+            abort(404, "Stripe session could not be found");
         }
 
         $payment = config('payable.models.payment')::where('provider_id', $session->id)->first();
         if (!$payment) {
-            throw new Exception("Payment could not be found with the provided stripe session id.");
+            abort(404, "Payment could not be found with the provided stripe session id.");
         }
         return $payment;
     }
@@ -109,13 +142,26 @@ class Stripe extends Provider implements PaymentProviderContract
     {
         switch ($status) {
 
-            case 'paid':
+            case 'succeeded':
                 return Payment::STATUS_PAID;
                 break;
 
-            case 'unpaid':
+            case 'requires_action':
+            case 'requires_confirmation':
+            case 'requires_capture':
+                return Payment::STATUS_PENDING;
+                break;
+
+            case 'processing':
+                return Payment::STATUS_OPEN;
+                break;
+
+            case 'requires_payment_method':
                 return Payment::STATUS_FAILED;
                 break;
+
+            case 'canceled':
+                return Payment::STATUS_CANCELED;
 
             default:
                 throw new Exception("Unknown payment status {$status}");
@@ -127,16 +173,57 @@ class Stripe extends Provider implements PaymentProviderContract
     {
         $stripe = $this->getStripeClient();
 
-        return $stripe->checkout->sessions->retrieve(
+        $payment_session = $stripe->checkout->sessions->retrieve(
             $payment->provider_id,
             []
         );
+
+        $payment_intent_id = $payment_session->payment_intent;
+
+        $this->updateStripeData($payment, $payment_intent_id);
+
+        $payment_intent = $stripe->paymentIntents->retrieve(
+            $payment_intent_id,
+            []
+        );
+
+        return $payment_intent;
+    }
+
+    protected function updateStripeData(Payment $payment, $payment_intent_id)
+    {
+        $stripe = $this->getStripeClient();
+
+        $customer_id = $payment->payable?->customer_id;
+
+        $payment_intent = $stripe->paymentIntents->update(
+            $payment_intent_id,
+            [
+                'metadata' => [
+                    'payable_type' => $payment->payable_type,
+                    'payable_id' => $payment->payable_id,
+                    'customer_id' => $customer_id ?? '',
+                ]
+            ]
+        );
+
+        if ($customer_id && $payment_intent->customer) {
+            $stripe->customers->update(
+                $payment_intent->customer,
+                [
+                    'metadata' => [
+                        'customer_id' => $customer_id,
+                    ]
+                ]
+            );
+        }
     }
 
     public function handleResponse(Payment $payment): PaymentStatusResponse
     {
-        $payment = $this->getPaymentStatus($payment);
-        $status = $this->convertStatus($payment->payment_status);
+        $payment_intent = $this->getPaymentStatus($payment);
+
+        $status = $this->convertStatus($payment_intent->status);
         $paid_amount = ($status == Payment::STATUS_PAID) ? $payment->amount_total : 0;
         $paid_amount = intval(floatval($paid_amount));
 
@@ -165,14 +252,9 @@ class Stripe extends Provider implements PaymentProviderContract
 
     protected function getPaymentMethod(Payment $payment): ?\Stripe\PaymentMethod
     {
-        $payment = $this->getPaymentStatus($payment);
+        $payment_intent = $this->getPaymentStatus($payment);
 
         $stripe = $this->getStripeClient();
-
-        $payment_intent = $stripe->paymentIntents->retrieve(
-            $payment->payment_intent,
-            []
-        );
 
         if (!$payment_intent->payment_method) {
             return null;

@@ -32,6 +32,7 @@ PaymentStatusCanceled::class
 PaymentStatusExpired::class
 PaymentStatusRefunded::class
 PaymentStatusUnknown::class
+ExternalCustomerModified::class
 ```
 
 ## Usage
