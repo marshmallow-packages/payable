@@ -178,10 +178,26 @@ class Stripe extends Provider implements PaymentProviderContract
             []
         );
 
+        $payment_intent_id = $payment_session->payment_intent;
+
+        $this->updateStripeData($payment, $payment_intent_id);
+
+        $payment_intent = $stripe->paymentIntents->retrieve(
+            $payment_intent_id,
+            []
+        );
+
+        return $payment_intent;
+    }
+
+    protected function updateStripeData(Payment $payment, $payment_intent_id)
+    {
+        $stripe = $this->getStripeClient();
+
         $customer_id = $payment->payable?->getCustomerId();
 
         $payment_intent = $stripe->paymentIntents->update(
-            $payment_session->payment_intent,
+            $payment_intent_id,
             [
                 'metadata' => [
                     'payable_type' => $payment->payable_type,
@@ -201,8 +217,6 @@ class Stripe extends Provider implements PaymentProviderContract
                 ]
             );
         }
-
-        return $payment_intent;
     }
 
     public function handleResponse(Payment $payment): PaymentStatusResponse
