@@ -102,7 +102,7 @@ class Stripe extends Provider implements PaymentProviderContract
         } elseif (in_array($event->type, config('payable.stripe.customer_event_types'))) {
             $payable_external_id = Arr::get($request->data, 'object.id');
             $payload_data = Arr::get($request->data, 'object');
-            event(new ExternalCustomerModified($payable_external_id, $payload_data));
+            event(new ExternalCustomerModified($event->type, $payable_external_id, $payload_data));
             abort(200);
         }
 
