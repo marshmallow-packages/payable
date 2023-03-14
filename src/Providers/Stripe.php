@@ -25,7 +25,7 @@ class Stripe extends Provider implements PaymentProviderContract
         $api_key = ($api_key) ? $api_key : config('payable.stripe.secret');
         StripApi::setApiKey($api_key);
 
-        return Session::create([
+        $session_data = [
             'payment_method_types' => $this->paymentType->vendor_type_options,
             'line_items' => [[
                 'data' => [],
@@ -42,13 +42,23 @@ class Stripe extends Provider implements PaymentProviderContract
             'mode' => 'payment',
             'success_url' => $this->redirectUrl(),
             'cancel_url' => $this->cancelUrl(),
-            'customer_email' => $this->payableModel->getCustomerEmail(),
-        ]);
+        ];
+
+        if ($this->payableModel?->id) {
+            $session_data['client_reference_id'] = $this->payableModel?->id;
+        }
+
+        if ($this->payableModel?->customer?->stripe_id) {
+            $session_data['customer'] = $this->payableModel?->customer->stripe_id;
+        } elseif ($this->payableModel?->getCustomerEmail()) {
+            $session_data['customer'] = $this->payableModel->getCustomerEmail();
+        }
+
+        return Session::create($session_data);
     }
 
     public function getPaymentId()
     {
-        ray($this, $this->provider_payment_object);
         return $this->provider_payment_object->id;
     }
 
