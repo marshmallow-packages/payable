@@ -168,9 +168,14 @@ class Stripe extends Provider implements PaymentProviderContract
             []
         );
 
-        $payment_intent = $stripe->paymentIntents->retrieve(
+        $payment_intent = $stripe->paymentIntents->update(
             $payment_session->payment_intent,
-            []
+            [
+                'metadata' => [
+                    'payable_type' => $payment->payable_type,
+                    'payable_id' => $payment->payable_id,
+                ]
+            ]
         );
 
         return $payment_intent;
