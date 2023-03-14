@@ -116,6 +116,11 @@ class Payment extends Model
         return $this->status === self::STATUS_OPEN;
     }
 
+    public function isPending()
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
     public function isPaid()
     {
         return $this->status === self::STATUS_PAID;

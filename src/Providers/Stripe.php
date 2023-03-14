@@ -48,6 +48,7 @@ class Stripe extends Provider implements PaymentProviderContract
 
     public function getPaymentId()
     {
+        ray($this, $this->provider_payment_object);
         return $this->provider_payment_object->id;
     }
 
@@ -109,13 +110,26 @@ class Stripe extends Provider implements PaymentProviderContract
     {
         switch ($status) {
 
-            case 'paid':
+            case 'succeeded':
                 return Payment::STATUS_PAID;
                 break;
 
-            case 'unpaid':
+            case 'requires_action':
+            case 'requires_confirmation':
+            case 'requires_capture':
+                return Payment::STATUS_PENDING;
+                break;
+
+            case 'processing':
+                return Payment::STATUS_OPEN;
+                break;
+
+            case 'requires_payment_method':
                 return Payment::STATUS_FAILED;
                 break;
+
+            case 'canceled':
+                return Payment::STATUS_CANCELED;
 
             default:
                 throw new Exception("Unknown payment status {$status}");
@@ -127,16 +141,23 @@ class Stripe extends Provider implements PaymentProviderContract
     {
         $stripe = $this->getStripeClient();
 
-        return $stripe->checkout->sessions->retrieve(
+        $payment_session = $stripe->checkout->sessions->retrieve(
             $payment->provider_id,
             []
         );
+
+        $payment_intent = $stripe->paymentIntents->retrieve(
+            $payment_session->payment_intent,
+            []
+        );
+
+        return $payment_intent;
     }
 
     public function handleResponse(Payment $payment): PaymentStatusResponse
     {
-        $payment = $this->getPaymentStatus($payment);
-        $status = $this->convertStatus($payment->payment_status);
+        $payment_intent = $this->getPaymentStatus($payment);
+        $status = $this->convertStatus($payment_intent->status);
         $paid_amount = ($status == Payment::STATUS_PAID) ? $payment->amount_total : 0;
         $paid_amount = intval(floatval($paid_amount));
 
@@ -165,14 +186,9 @@ class Stripe extends Provider implements PaymentProviderContract
 
     protected function getPaymentMethod(Payment $payment): ?\Stripe\PaymentMethod
     {
-        $payment = $this->getPaymentStatus($payment);
+        $payment_intent = $this->getPaymentStatus($payment);
 
         $stripe = $this->getStripeClient();
-
-        $payment_intent = $stripe->paymentIntents->retrieve(
-            $payment->payment_intent,
-            []
-        );
 
         if (!$payment_intent->payment_method) {
             return null;
