@@ -49,11 +49,18 @@ class Stripe extends Provider implements PaymentProviderContract
             $session_data['client_reference_id'] = $this->payableModel?->id;
         }
 
+        $metadata = [
+            'payable_type' => $this->payableModel?->getMorphClass(),
+            'payable_id' => $this->payableModel?->id
+        ];
+
         if ($this->payableModel?->customer?->stripe_id) {
             $session_data['customer'] = $this->payableModel?->customer->stripe_id;
         } elseif ($this->payableModel?->getCustomerEmail()) {
             $session_data['customer_email'] = $this->payableModel->getCustomerEmail();
         }
+
+        $session_data['metadata'] = $metadata;
 
         return Session::create($session_data);
     }
