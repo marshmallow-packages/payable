@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Stripe\Checkout\Session;
 use Stripe\Stripe as StripApi;
 use Marshmallow\Payable\Models\Payment;
+use Marshmallow\Payable\Events\ExternalCustomerModified;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
@@ -98,6 +99,11 @@ class Stripe extends Provider implements PaymentProviderContract
 
         if (in_array($event->type, config('payable.stripe.event_types'))) {
             return $this->convertWebhookDataToPaymentModel($request);
+        } elseif (in_array($event->type, config('payable.stripe.customer_event_types'))) {
+            $payable_external_id = Arr::get($request->data, 'object.id');
+            $payload_data = Arr::get($request->data, 'object');
+            event(new ExternalCustomerModified($payable_external_id, $payload_data));
+            abort(200);
         }
 
         abort(404, "Received unknown event type {$event->type}");
@@ -172,16 +178,29 @@ class Stripe extends Provider implements PaymentProviderContract
             []
         );
 
+        $customer_id = $payment->payable?->getCustomerId();
+
         $payment_intent = $stripe->paymentIntents->update(
             $payment_session->payment_intent,
             [
                 'metadata' => [
                     'payable_type' => $payment->payable_type,
                     'payable_id' => $payment->payable_id,
-                    'customer_id' => $payment->payable?->getCustomerId() ?? '',
+                    'customer_id' => $customer_id ?? '',
                 ]
             ]
         );
+
+        if ($customer_id && $payment_intent->customer) {
+            $stripe->customers->update(
+                $payment_intent->customer,
+                [
+                    'metadata' => [
+                        'customer_id' => $customer_id,
+                    ]
+                ]
+            );
+        }
 
         return $payment_intent;
     }
@@ -189,6 +208,7 @@ class Stripe extends Provider implements PaymentProviderContract
     public function handleResponse(Payment $payment): PaymentStatusResponse
     {
         $payment_intent = $this->getPaymentStatus($payment);
+
         $status = $this->convertStatus($payment_intent->status);
         $paid_amount = ($status == Payment::STATUS_PAID) ? $payment->amount_total : 0;
         $paid_amount = intval(floatval($paid_amount));

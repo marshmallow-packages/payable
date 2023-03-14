@@ -33,6 +33,7 @@ class PaymentCallbackController extends Controller
         $provider = Payable::getProvider($payment_provider->types->first());
 
         $payment = $provider->guard($request);
+
         return $provider->handleWebhook($payment, $request);
     }
 
