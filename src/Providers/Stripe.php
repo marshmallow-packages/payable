@@ -49,7 +49,7 @@ class Stripe extends Provider implements PaymentProviderContract
             $session_data['client_reference_id'] = $this->payableModel?->id;
         }
 
-        $metadata = [
+        $session_data['metadata'] = [
             'payable_type' => $this->payableModel?->getMorphClass(),
             'payable_id' => $this->payableModel?->id,
             'customer_id' => $this->payableModel?->getCustomerId()
@@ -178,7 +178,7 @@ class Stripe extends Provider implements PaymentProviderContract
                 'metadata' => [
                     'payable_type' => $payment->payable_type,
                     'payable_id' => $payment->payable_id,
-                    'customer_id' => $payment?->getCustomerId()
+                    'customer_id' => $payment->payable?->getCustomerId()
                 ]
             ]
         );
