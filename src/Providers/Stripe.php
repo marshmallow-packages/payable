@@ -52,7 +52,7 @@ class Stripe extends Provider implements PaymentProviderContract
         if ($this->payableModel?->customer?->stripe_id) {
             $session_data['customer'] = $this->payableModel?->customer->stripe_id;
         } elseif ($this->payableModel?->getCustomerEmail()) {
-            $session_data['customer'] = $this->payableModel->getCustomerEmail();
+            $session_data['customer_email'] = $this->payableModel->getCustomerEmail();
         }
 
         return Session::create($session_data);
