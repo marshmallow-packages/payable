@@ -53,7 +53,7 @@ class Stripe extends Provider implements PaymentProviderContract
         $session_data['metadata'] = [
             'payable_type' => $this->payableModel?->getMorphClass(),
             'payable_id' => $this->payableModel?->id,
-            'customer_id' => $this->payableModel?->getCustomerId() ?? '',
+            'customer_id' => $this->payableModel?->customer_id ?? '',
         ];
 
         if ($this->payableModel?->customer?->payable_external_id) {
@@ -194,7 +194,7 @@ class Stripe extends Provider implements PaymentProviderContract
     {
         $stripe = $this->getStripeClient();
 
-        $customer_id = $payment->payable?->getCustomerId();
+        $customer_id = $payment->payable?->customer_id;
 
         $payment_intent = $stripe->paymentIntents->update(
             $payment_intent_id,
