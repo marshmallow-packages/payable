@@ -57,7 +57,7 @@ class Stripe extends Provider implements PaymentProviderContract
         ];
 
         if ($this->payableModel?->customer?->payable_external_id) {
-            $session_data['customer'] = $this->payableModel->payable_external_id;
+            $session_data['customer'] = $this->payableModel->customer->payable_external_id;
             $session_data['customer_update'] = [
                 'name' => 'auto',
                 'address' => 'auto',
