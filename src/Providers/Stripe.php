@@ -4,6 +4,7 @@ namespace Marshmallow\Payable\Providers;
 
 use Exception;
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use Stripe\Checkout\Session;
 use Stripe\Stripe as StripApi;
@@ -88,18 +89,22 @@ class Stripe extends Provider implements PaymentProviderContract
             return $this->convertWebhookDataToPaymentModel($request);
         }
 
-        throw new Exception("Received unknown event type {$event->type}");
+        abort(404, "Received unknown event type {$event->type}");
     }
 
     protected function convertWebhookDataToPaymentModel(Request $request): Payment
     {
         $stripe = $this->getStripeClient();
+
+        $payment_intend_id = Arr::get($request->data, 'object.id');
+
         $sessions = $stripe->checkout->sessions->all([
-            'payment_intent' => $request->data['object']['id'],
+            'payment_intent' => $payment_intend_id,
             'limit' => 1,
         ]);
 
         $session = $sessions->first();
+
         if (!$session) {
             throw new Exception("Stripe session could not be found");
         }
