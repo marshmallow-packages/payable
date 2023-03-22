@@ -63,7 +63,9 @@ class Stripe extends Provider implements PaymentProviderContract
                 'name' => 'auto',
                 'address' => 'auto',
             ];
-            $session_data['payment_intent_data']['setup_future_usage'] = 'off_session';
+            if ($this->is_recurring) {
+                $session_data['payment_intent_data']['setup_future_usage'] = 'off_session';
+            }
         } elseif ($this->payableModel?->getCustomerEmail()) {
             $session_data['customer_email'] = $this->payableModel->getCustomerEmail();
         }
