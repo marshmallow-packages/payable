@@ -5,6 +5,7 @@ namespace Marshmallow\Payable\Providers;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Stripe\Checkout\Session;
 use Stripe\Stripe as StripApi;
@@ -62,7 +63,9 @@ class Stripe extends Provider implements PaymentProviderContract
                 'name' => 'auto',
                 'address' => 'auto',
             ];
-            $session_data['payment_intent_data']['setup_future_usage'] = 'off_session';
+            if ($this->is_recurring) {
+                $session_data['payment_intent_data']['setup_future_usage'] = 'off_session';
+            }
         } elseif ($this->payableModel?->getCustomerEmail()) {
             $session_data['customer_email'] = $this->payableModel->getCustomerEmail();
         }
@@ -173,12 +176,16 @@ class Stripe extends Provider implements PaymentProviderContract
     {
         $stripe = $this->getStripeClient();
 
-        $payment_session = $stripe->checkout->sessions->retrieve(
-            $payment->provider_id,
-            []
-        );
+        if (Str::startsWith($payment->provider_id, 'pi_')) {
+            $payment_intent_id = $payment->provider_id;
+        } else {
+            $payment_session = $stripe->checkout->sessions->retrieve(
+                $payment->provider_id,
+                []
+            );
 
-        $payment_intent_id = $payment_session->payment_intent;
+            $payment_intent_id = $payment_session->payment_intent;
+        }
 
         $this->updateStripeData($payment, $payment_intent_id);
 
