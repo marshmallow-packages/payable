@@ -173,9 +173,9 @@ class Mollie extends Provider implements PaymentProviderContract
         return Str::of($payment_id)->startsWith('ord_');
     }
 
-    public function refund(Payment $payment, int $amount)
+    public function refund(Payment $payment, int $amount, $api_key = null)
     {
-        $api = $this->getClient();
+        $api = $this->getClient($api_key);
 
         if ($this->isPayment($payment->provider_id)) {
             /** Refund payments */
