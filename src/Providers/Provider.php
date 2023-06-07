@@ -22,7 +22,7 @@ class Provider
     protected $payment;
     protected $provider_payment_object;
     protected $payment_info_result;
-    protected $extra_payment_data_callback;
+    protected $extraPaymentDataCallback;
     protected $is_recurring = false;
 
     public function preparePayment(
