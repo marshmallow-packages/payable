@@ -188,13 +188,8 @@ class Mollie extends Provider implements PaymentProviderContract
             ]);
         } else {
             /** Refund orders */
-            $mollie_payment = $api->orders->get($payment->provider_id);
-            $result = $api->orders->refund($mollie_payment, [
-                'amount' => [
-                    'currency' => $this->getCurrencyIso4217Code(),
-                    'value' => $this->formatCentToDecimalString($amount),
-                ],
-            ]);
+            $mollie_order = $api->orders->get($payment->provider_id);
+            $result = $mollie_order->refundAll();
         }
 
         return new PaymentRefund(
