@@ -169,6 +169,10 @@ class Provider
 
     protected function getPayableIdentifier()
     {
+        if (method_exists($this->payableModel, 'getPayableIdentifier')) {
+            return $this->payableModel->getPayableIdentifier();
+        }
+
         return $this->payableModel->getPayableDescription() ?? $this->payableModel->id;
     }
 
