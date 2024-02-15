@@ -96,6 +96,9 @@ class Payment extends Model
         ]);
     }
 
+    /**
+     * @deprecated deprecated, use createShipmentWithTracking instead
+     */
     public function createShipment(array $lines = [], $api_key = null)
     {
         $client = Payable::getProvider(
@@ -109,6 +112,21 @@ class Payment extends Model
         }
 
         return $client->createShipment($this, $lines, $api_key);
+    }
+
+    public function createShipmentWithTracking(array $lines = [], array $tracking = [], $api_key = null)
+    {
+        $client = Payable::getProvider(
+            $this->type,
+        );
+
+        if (!method_exists($client, 'createShipmentWithTracking')) {
+            throw new Exception(
+                "`createShipmentWithTracking` is not implemented for " . get_class($client) . " yet."
+            );
+        }
+
+        return $client->createShipmentWithTracking($this, $lines, $tracking, $api_key);
     }
 
     public function isOpen()

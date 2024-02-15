@@ -150,6 +150,9 @@ class Mollie extends Provider implements PaymentProviderContract
         return $api->orders->create($payload);
     }
 
+    /**
+     * @deprecated deprecated, use createShipmentWithTracking instead
+     */
     public function createShipment(Payment $payment, array $lines = [], $api_key = null)
     {
         $api = $this->getClient($api_key);
@@ -158,6 +161,27 @@ class Mollie extends Provider implements PaymentProviderContract
             return $order->createShipment([
                 'lines' => $lines,
             ]);
+        }
+
+        return $order->shipAll();
+    }
+
+    public function createShipmentWithTracking(Payment $payment, array $lines = [], array $tracking = [], $api_key = null)
+    {
+        $api = $this->getClient($api_key);
+        $order = $api->orders->get($payment->provider_id);
+        $options = [];
+
+        if (!empty($tracking)) {
+            $options['tracking'] = $tracking;
+        }
+
+        if (!empty($lines)) {
+            $options['lines'] = $lines;
+        }
+
+        if (!empty($options)) {
+            return $order->createShipment($options);
         }
 
         return $order->shipAll();
