@@ -107,7 +107,9 @@ class Mollie extends Provider implements PaymentProviderContract
             $total_amount = $item->getTotalAmount();
             $vat_amount = $item->getTotalVatAmount();
 
-            if ($item->discount_including_vat && $item->discount_including_vat > 0) {
+            $has_price_difference = ($item->discount_including_vat !== $item->price_including_vat);
+
+            if ($has_price_difference && $item->discount_including_vat && $item->discount_including_vat > 0) {
                 $discount_amount = ($item->price_including_vat - $item->discount_including_vat) * $item->quantity;
                 $total_amount = $total_amount - $discount_amount;
                 $vat_amount = ($item->discount_vat_amount * $item->quantity);
@@ -148,6 +150,9 @@ class Mollie extends Provider implements PaymentProviderContract
         return $api->orders->create($payload);
     }
 
+    /**
+     * @deprecated deprecated, use createShipmentWithTracking instead
+     */
     public function createShipment(Payment $payment, array $lines = [], $api_key = null)
     {
         $api = $this->getClient($api_key);
@@ -156,6 +161,27 @@ class Mollie extends Provider implements PaymentProviderContract
             return $order->createShipment([
                 'lines' => $lines,
             ]);
+        }
+
+        return $order->shipAll();
+    }
+
+    public function createShipmentWithTracking(Payment $payment, array $lines = [], array $tracking = [], $api_key = null)
+    {
+        $api = $this->getClient($api_key);
+        $order = $api->orders->get($payment->provider_id);
+        $options = [];
+
+        if (!empty($tracking)) {
+            $options['tracking'] = $tracking;
+        }
+
+        if (!empty($lines)) {
+            $options['lines'] = $lines;
+        }
+
+        if (!empty($options)) {
+            return $order->createShipment($options);
         }
 
         return $order->shipAll();
@@ -171,9 +197,9 @@ class Mollie extends Provider implements PaymentProviderContract
         return Str::of($payment_id)->startsWith('ord_');
     }
 
-    public function refund(Payment $payment, int $amount)
+    public function refund(Payment $payment, int $amount, $api_key = null)
     {
-        $api = $this->getClient();
+        $api = $this->getClient($api_key);
 
         if ($this->isPayment($payment->provider_id)) {
             /** Refund payments */
@@ -186,13 +212,8 @@ class Mollie extends Provider implements PaymentProviderContract
             ]);
         } else {
             /** Refund orders */
-            $mollie_payment = $api->orders->get($payment->provider_id);
-            $result = $api->orders->refund($mollie_payment, [
-                'amount' => [
-                    'currency' => $this->getCurrencyIso4217Code(),
-                    'value' => $this->formatCentToDecimalString($amount),
-                ],
-            ]);
+            $mollie_order = $api->orders->get($payment->provider_id);
+            $result = $mollie_order->refundAll();
         }
 
         return new PaymentRefund(

@@ -49,7 +49,7 @@ class Ippies extends Provider implements PaymentProviderContract
 
     public function handleWebhookNotification(Payment $payment, Request $request): PaymentStatusResponse
     {
-        return new PaymentStatusResponse(Payment::STATUS_FAILED, 0);
+        return $this->handleResponse($payment);
     }
 
     public function convertStatus($status): string

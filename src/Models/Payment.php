@@ -73,7 +73,7 @@ class Payment extends Model
         }
     }
 
-    public function refund(int $amount)
+    public function refund(int $amount, $api_key = null)
     {
         $client = Payable::getProvider(
             $this->type,
@@ -83,7 +83,7 @@ class Payment extends Model
             throw new Exception("Refund is not implemented for " . get_class($client) . " yet.");
         }
 
-        $result = $client->refund($this, $amount);
+        $result = $client->refund($this, $amount, $api_key);
 
         return PaymentRefund::create([
             'payment_id' => $this->id,
@@ -96,7 +96,10 @@ class Payment extends Model
         ]);
     }
 
-    public function createShipment(array $lines = [])
+    /**
+     * @deprecated deprecated, use createShipmentWithTracking instead
+     */
+    public function createShipment(array $lines = [], $api_key = null)
     {
         $client = Payable::getProvider(
             $this->type,
@@ -108,7 +111,22 @@ class Payment extends Model
             );
         }
 
-        return $client->createShipment($this, $lines);
+        return $client->createShipment($this, $lines, $api_key);
+    }
+
+    public function createShipmentWithTracking(array $lines = [], array $tracking = [], $api_key = null)
+    {
+        $client = Payable::getProvider(
+            $this->type,
+        );
+
+        if (!method_exists($client, 'createShipmentWithTracking')) {
+            throw new Exception(
+                "`createShipmentWithTracking` is not implemented for " . get_class($client) . " yet."
+            );
+        }
+
+        return $client->createShipmentWithTracking($this, $lines, $tracking, $api_key);
     }
 
     public function isOpen()
