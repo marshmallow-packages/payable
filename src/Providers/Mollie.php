@@ -41,6 +41,7 @@ class Mollie extends Provider implements PaymentProviderContract
                 ),
             ],
             'description' => $this->getPayableDescription(),
+            'cancelUrl' => $this->cancelUrl(),
             'redirectUrl' => $this->redirectUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
@@ -91,6 +92,7 @@ class Mollie extends Provider implements PaymentProviderContract
             'consumerDateOfBirth' => $this->payableModel->getConsumerDateOfBirth(),
             // 'description' => $this->getPayableDescription(),
             'redirectUrl' => $this->redirectUrl(),
+            'cancelUrl' => $this->cancelUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
         ];
@@ -252,6 +254,7 @@ class Mollie extends Provider implements PaymentProviderContract
     {
         switch ($status) {
             case 'open':
+            case 'created':
                 return Payment::STATUS_OPEN;
                 break;
 
