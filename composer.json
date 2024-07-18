@@ -23,8 +23,8 @@
     },
     "minimum-stability": "dev",
     "require": {
-        "php": "^8.0",
-        "mollie/laravel-mollie": "^2.19",
+        "php": "^8.1",
+        "mollie/laravel-mollie": "^3.0",
         "marshmallow/sluggable": "^1.4",
         "marshmallow/helpers": "^2.12",
         "marshmallow/commands": "^1.2",
