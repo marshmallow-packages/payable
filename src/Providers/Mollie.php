@@ -118,7 +118,7 @@ class Mollie extends Provider implements PaymentProviderContract
                 $vat_amount = ($item->discount_vat_amount * $item->quantity);
             }
 
-            $payload['lines'][] = [
+            $line_payload = [
                 'type' => $type, //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
                 'name' => $item->description,
                 'quantity' => $item->quantity,
@@ -148,6 +148,12 @@ class Mollie extends Provider implements PaymentProviderContract
                     ),
                 ],
             ];
+
+            if (method_exists($item, 'parsePaymentItemPayload')) {
+                $line_payload = $item->parsePaymentItemPayload($line_payload);
+            }
+
+            $payload['lines'][] = $line_payload;
         });
 
         return $api->orders->create($payload);
