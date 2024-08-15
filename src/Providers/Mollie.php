@@ -6,6 +6,7 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Mollie\Api\MollieApiClient;
 use Marshmallow\Payable\Models\Payment;
 use Mollie\Laravel\Wrappers\MollieApiWrapper;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
@@ -15,7 +16,7 @@ use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
 class Mollie extends Provider implements PaymentProviderContract
 {
-    protected function getClient($api_key = null): MollieApiWrapper
+    protected function getClient($api_key = null): MollieApiWrapper|MollieApiClient
     {
         $api = MollieApi::api();
         if ($api_key) {
