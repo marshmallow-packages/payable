@@ -96,8 +96,9 @@ class Provider
             $route_name = config('payable.routes.payment_unknown');
         }
 
-        if (class_exists(config('payable.actions.before_redirect_to_confirmation_page'))) {
-            $payment = config('payable.actions.before_redirect_to_confirmation_page')::handle($payment);
+        $before_redirect_action = config('payable.actions.before_redirect_to_confirmation_page');
+        if ($before_redirect_action && class_exists($before_redirect_action)) {
+            $payment = $before_redirect_action::handle($payment);
         }
 
         return redirect()->route(
