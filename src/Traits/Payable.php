@@ -19,8 +19,8 @@ trait Payable
         PaymentType $paymentType,
         $testPayment = null,
         $apiKey = null,
-        callable $extraPaymentDataCallback = null,
-        callable $extraPaymentModifier = null,
+        ?callable $extraPaymentDataCallback = null,
+        ?callable $extraPaymentModifier = null,
         bool $is_recurring = false,
     ) {
         if (!$this->paymentAllowed()) {
@@ -44,8 +44,8 @@ trait Payable
         PaymentType $paymentType,
         $testPayment = null,
         $apiKey = null,
-        callable $extraPaymentDataCallback = null,
-        callable $extraPaymentModifier = null,
+        ?callable $extraPaymentDataCallback = null,
+        ?callable $extraPaymentModifier = null,
     ) {
         return $this->startPayment(
             paymentType: $paymentType,
