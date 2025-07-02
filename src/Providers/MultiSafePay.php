@@ -85,7 +85,7 @@ class MultiSafePay extends Provider implements PaymentProviderContract
                 ->addEmailAddress(new EmailAddress($payabel_model->getCustomerEmail()))
                 ->addPhoneNumber(new PhoneNumber($payabel_model->getCustomerPhoneNumber()))
                 ->addLocale($payabel_model->getCustomerLocale())
-                ->addUserAgent(request()->header('User-Agent') ?? 'Unknon-User-Agent')
+                ->addUserAgent(request()->header('User-Agent'))
                 ->addForwardedIp(new IpAddress(request()->ip()));
 
             $orderRequest = $orderRequest->addCustomer($customer)

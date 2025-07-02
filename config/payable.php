@@ -57,8 +57,8 @@ return [
     'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
-        'webhook' => env('STRIPE_WEBHOOK_SECRET'),
-
+        // 'webhook' => env('STRIPE_WEBHOOK_SECRET'),
+        'webhook' => env('STRIPE_PAYABLE_WEBHOOK_SECRET', config('cashier.webhook.secret')),
         'event_types' => [
             'payment_intent.succeeded',
             'payment_intent.requires_action',

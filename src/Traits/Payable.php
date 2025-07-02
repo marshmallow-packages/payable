@@ -22,6 +22,7 @@ trait Payable
         callable $extraPaymentDataCallback = null,
         callable $extraPaymentModifier = null,
         bool $is_recurring = false,
+        bool $is_custom = false,
     ) {
         if (!$this->paymentAllowed()) {
             throw new Exception("Payment is not allowed at this point");
@@ -29,6 +30,10 @@ trait Payable
         $provider = PayableHelper::getProvider($paymentType);
 
         $method = ($is_recurring) ? 'prepareRecurringPayment' : 'preparePayment';
+
+        if ($is_custom) {
+            $method = 'prepareCustomPayment';
+        }
 
         return $provider->{$method}(
             $this,

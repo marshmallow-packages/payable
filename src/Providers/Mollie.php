@@ -6,7 +6,6 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Mollie\Api\MollieApiClient;
 use Marshmallow\Payable\Models\Payment;
 use Mollie\Laravel\Wrappers\MollieApiWrapper;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
@@ -16,7 +15,7 @@ use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
 class Mollie extends Provider implements PaymentProviderContract
 {
-    protected function getClient($api_key = null): MollieApiWrapper|MollieApiClient
+    protected function getClient($api_key = null): MollieApiWrapper
     {
         $api = MollieApi::api();
         if ($api_key) {
@@ -42,7 +41,6 @@ class Mollie extends Provider implements PaymentProviderContract
                 ),
             ],
             'description' => $this->getPayableDescription(),
-            'cancelUrl' => $this->cancelUrl(),
             'redirectUrl' => $this->redirectUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
@@ -93,7 +91,6 @@ class Mollie extends Provider implements PaymentProviderContract
             'consumerDateOfBirth' => $this->payableModel->getConsumerDateOfBirth(),
             // 'description' => $this->getPayableDescription(),
             'redirectUrl' => $this->redirectUrl(),
-            'cancelUrl' => $this->cancelUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
         ];
@@ -118,7 +115,7 @@ class Mollie extends Provider implements PaymentProviderContract
                 $vat_amount = ($item->discount_vat_amount * $item->quantity);
             }
 
-            $line_payload = [
+            $payload['lines'][] = [
                 'type' => $type, //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
                 'name' => $item->description,
                 'quantity' => $item->quantity,
@@ -148,12 +145,6 @@ class Mollie extends Provider implements PaymentProviderContract
                     ),
                 ],
             ];
-
-            if (method_exists($item, 'parsePaymentItemPayload')) {
-                $line_payload = $item->parsePaymentItemPayload($line_payload);
-            }
-
-            $payload['lines'][] = $line_payload;
         });
 
         return $api->orders->create($payload);
@@ -261,7 +252,6 @@ class Mollie extends Provider implements PaymentProviderContract
     {
         switch ($status) {
             case 'open':
-            case 'created':
                 return Payment::STATUS_OPEN;
                 break;
 

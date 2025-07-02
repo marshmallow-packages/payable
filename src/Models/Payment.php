@@ -141,7 +141,7 @@ class Payment extends Model
 
     public function isPaid()
     {
-        return $this->status === self::STATUS_PAID && $this->paidInFull();
+        return $this->status === self::STATUS_PAID;
     }
 
     public function isCompleted()
@@ -233,11 +233,6 @@ class Payment extends Model
             $payment->remaining_amount = $payment->total_amount - $payment->paid_amount;
             $payment->completed = ($payment->remaining_amount == 0) ? true : false;
         });
-    }
-
-    public function paidInFull()
-    {
-        return $this->payable->getTotalAmount() == $this->paid_amount;
     }
 
     public function getIncrementing()
