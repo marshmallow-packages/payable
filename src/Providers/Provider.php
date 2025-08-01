@@ -30,8 +30,8 @@ class Provider
         PaymentType $paymentType,
         $testPayment = null,
         $api_key = null,
-        callable $extraPaymentDataCallback = null,
-        callable $extraPaymentModifier = null
+        ?callable $extraPaymentDataCallback = null,
+        ?callable $extraPaymentModifier = null
     ): string {
         $this->payableModel = $payableModel;
         $this->paymentType = $paymentType;
