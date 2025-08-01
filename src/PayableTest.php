@@ -39,13 +39,6 @@ class PayableTest
         return $cart->startPayment($payment_type, $test, $api_key);
     }
 
-    public function ippies($test = false, $api_key = null)
-    {
-        $cart = $this->getTestCart();
-        $payment_type = $this->getPaymentType(Payable::IPPIES);
-
-        return $cart->startPayment($payment_type, $test, $api_key);
-    }
 
 
     public function buckaroo($test = true)

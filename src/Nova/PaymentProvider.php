@@ -91,7 +91,6 @@ class PaymentProvider extends Resource
                 PaymentProviderModel::PROVIDER_CUSTOM => 'Custom',
                 PaymentProviderModel::PROVIDER_MOLLIE => 'Mollie',
                 PaymentProviderModel::PROVIDER_MULTI_SAFE_PAY => 'Multi Safe Pay',
-                Payable::IPPIES => 'ippies.nl',
             ]),
             // Boolean::make(__('Use simple checkout'), 'simple_checkout')->help(
             // __('Simple checkout means that you can just implement a "Pay now" button on you cart page. The type of payment (ideal, paypal, CC etc) will be done on the website of the payment provider')
