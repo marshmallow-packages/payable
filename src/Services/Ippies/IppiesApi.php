@@ -2,6 +2,7 @@
 
 namespace Marshmallow\Payable\Services\Ippies;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 
 class IppiesApi
@@ -28,6 +29,37 @@ class IppiesApi
 
     public function getPaymentStatus($order_id, $amount)
     {
+        $rest_client_id = config('payable.ippies.rest_client_id');
+        $rest_client_secret = config('payable.ippies.rest_client_secret');
+
+        if ($rest_client_id && $rest_client_secret) {
+
+            $response = Http::withoutVerifying()->post("https://rest2.ippies.nl/grant", [
+                "grant_type" => "client_credentials",
+                "client_id" => $rest_client_id,
+                "client_secret" => $rest_client_secret,
+            ]);
+
+            $token = Arr::get($response->json(), "access_token");
+
+            $shop_id = $this->getShopId();
+            $hash = md5(
+                $shop_id . $order_id . $amount . $rest_client_secret
+            );
+
+            $res = Http::withToken($token)->get("https://rest2.ippies.nl/payment/status", [
+                "shop_id" => $shop_id,
+                "order_id" => $order_id,
+                "paid_amount" => $amount,
+                "hash" => $hash
+            ]);
+
+            $this->status = (object) [
+                'type' => Arr::get($res, 'type'),
+            ];
+
+            return $this;
+        }
         $status_api_key = config('payable.ippies.status_api_key');
         $hash = sha1($this->getShopId() . md5($status_api_key) . $order_id . $amount);
         $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><request><key>{$status_api_key}</key><service>CheckPayment</service><params><orderid>{$order_id}</orderid><amount>{$amount}</amount><hash>{$hash}</hash></params></request>";

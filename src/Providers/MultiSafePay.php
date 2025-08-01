@@ -61,13 +61,9 @@ class MultiSafePay extends Provider implements PaymentProviderContract
             $this->payableModel->items->each(function ($item) use (&$items) {
                 $items[] = (new Item())
                     ->addName($item->description)
-                    ->addUnitPrice(new Money($item->price_excluding_vat, 'EUR')) // Amount must be in cents
+                    ->addUnitPrice(new Money($item->price_including_vat, 'EUR')) // Amount must be in cents
                     ->addQuantity($item->quantity)
                     ->addDescription($item->description)
-                    ->addTaxRate($item->vatrate->rate)
-                    ->addTaxTableSelector(
-                        $item->vatrate->name
-                    )
                     ->addMerchantItemId(
                         $item->product_id ?? $item->type
                     );
@@ -89,7 +85,7 @@ class MultiSafePay extends Provider implements PaymentProviderContract
                 ->addEmailAddress(new EmailAddress($payabel_model->getCustomerEmail()))
                 ->addPhoneNumber(new PhoneNumber($payabel_model->getCustomerPhoneNumber()))
                 ->addLocale($payabel_model->getCustomerLocale())
-                ->addUserAgent(request()->header('User-Agent'))
+                ->addUserAgent(request()->header('User-Agent') ?? 'Unknon-User-Agent')
                 ->addForwardedIp(new IpAddress(request()->ip()));
 
             $orderRequest = $orderRequest->addCustomer($customer)

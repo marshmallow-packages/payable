@@ -32,6 +32,7 @@ PaymentStatusCanceled::class
 PaymentStatusExpired::class
 PaymentStatusRefunded::class
 PaymentStatusUnknown::class
+ExternalCustomerModified::class
 ```
 
 ## Usage
@@ -45,6 +46,35 @@ PAYABLE_TEST_PAYMENTS=true
 ### Prepare your models
 
 Add the `Payable` trait to your model that should support payments.
+
+### Use order information
+
+First let the payable package know we want to sent order information to the payment provider.
+
+```php
+return [
+    'use_order_payments' => true,
+]
+```
+
+Add the trait `PayableWithItems` to your Payable model.
+
+Implements the following methods on your Payable model.
+
+```php
+getBillingOrganizationName(),
+getBillingTitle(),
+getBillingGivenName(), //required
+getBillingFamilyName(), //required
+getBillingEmailaddress(), //required
+getBillingPhonenumber(),
+getBillingStreetAndNumber(), //required
+getBillingStreetAdditional(),
+getBillingPostalCode(),
+getBillingCity(), //required
+getBillingRegion(),
+getBillingCountry(), //required
+```
 
 ## Providers
 

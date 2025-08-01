@@ -22,7 +22,7 @@ class Provider
     protected $payment;
     protected $provider_payment_object;
     protected $payment_info_result;
-    protected $extra_payment_data_callback;
+    protected $extraPaymentDataCallback;
     protected $is_recurring = false;
 
     public function preparePayment(
@@ -96,6 +96,11 @@ class Provider
             $route_name = config('payable.routes.payment_unknown');
         }
 
+        $before_redirect_action = config('payable.actions.before_redirect_to_confirmation_page');
+        if ($before_redirect_action && class_exists($before_redirect_action)) {
+            $payment = $before_redirect_action::handle($payment);
+        }
+
         return redirect()->route(
             $route_name,
             [
@@ -165,7 +170,11 @@ class Provider
 
     protected function getPayableIdentifier()
     {
-        return $this->payableModel->id;
+        if (method_exists($this->payableModel, 'getPayableIdentifier')) {
+            return $this->payableModel->getPayableIdentifier();
+        }
+
+        return $this->payableModel->getPayableDescription() ?? $this->payableModel->id;
     }
 
     public function isTestPayment($testPayment = null): bool

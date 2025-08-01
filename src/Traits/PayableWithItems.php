@@ -2,8 +2,6 @@
 
 namespace Marshmallow\Payable\Traits;
 
-use Illuminate\Database\Eloquent\Model;
-
 trait PayableWithItems
 {
     public function getConsumerDateOfBirth()
@@ -23,12 +21,17 @@ trait PayableWithItems
 
     public function getBillingGivenName()
     {
-        return $this->invoiceAddress->first_name;
+        return $this->invoiceAddress()->first()?->first_name;
     }
 
     public function getBillingFamilyName()
     {
-        return $this->invoiceAddress->last_name;
+        return $this->invoiceAddress()->first()?->last_name;
+    }
+
+    public function getCustomerPhonenumber()
+    {
+        return $this->customer()->first()?->phone_number;
     }
 
     public function getBillingEmailaddress()
@@ -44,33 +47,33 @@ trait PayableWithItems
     public function getBillingStreetAndNumber()
     {
         return trim(
-            "{$this->invoiceAddress->address_line_1} {$this->invoiceAddress->address_line_2}"
+            "{$this->invoiceAddress()->first()?->address_line_1} {$this->invoiceAddress()->first()?->address_line_2}"
         );
     }
 
     public function getBillingStreetAdditional()
     {
-        return $this->invoiceAddress->address_line_3;
+        return $this->invoiceAddress()->first()?->address_line_3;
     }
 
     public function getBillingPostalCode()
     {
-        return $this->invoiceAddress->postal_code;
+        return $this->invoiceAddress()->first()?->postal_code;
     }
 
     public function getBillingCity()
     {
-        return $this->invoiceAddress->city;
+        return $this->invoiceAddress()->first()?->city;
     }
 
     public function getBillingRegion()
     {
-        return $this->invoiceAddress->state;
+        return $this->invoiceAddress()->first()?->state;
     }
 
     public function getBillingCountry()
     {
-        return $this->invoiceAddress->country?->alpha2 ?? 'NL';
+        return $this->invoiceAddress()->first()?->country?->alpha2 ?? 'NL';
     }
 
     public function getShippingOrganizationName()
@@ -85,12 +88,12 @@ trait PayableWithItems
 
     public function getShippingGivenName()
     {
-        return $this->shippingAddress->first_name;
+        return $this->shippingAddress()->first()->first_name;
     }
 
     public function getShippingFamilyName()
     {
-        return $this->shippingAddress->last_name;
+        return $this->shippingAddress()->first()->last_name;
     }
 
     public function getShippingEmailaddress()
@@ -106,33 +109,33 @@ trait PayableWithItems
     public function getShippingStreetAndNumber()
     {
         return trim(
-            "{$this->shippingAddress->address_line_1} {$this->shippingAddress->address_line_2}"
+            "{$this->shippingAddress()->first()?->address_line_1} {$this->shippingAddress()->first()?->address_line_2}"
         );
     }
 
     public function getShippingStreetAdditional()
     {
-        return $this->shippingAddress->address_line_3;
+        return $this->shippingAddress()->first()?->address_line_3;
     }
 
     public function getShippingPostalCode()
     {
-        return $this->shippingAddress->postal_code;
+        return $this->shippingAddress()->first()?->postal_code;
     }
 
     public function getShippingCity()
     {
-        return $this->shippingAddress->city;
+        return $this->shippingAddress()->first()?->city;
     }
 
     public function getShippingRegion()
     {
-        return $this->shippingAddress->state;
+        return $this->shippingAddress()->first()?->state;
     }
 
     public function getShippingCountry()
     {
-        return $this->shippingAddress->country?->alpha2 ?? 'NL';
+        return $this->shippingAddress()->first()?->country?->alpha2 ?? 'NL';
     }
 
     public abstract function items();

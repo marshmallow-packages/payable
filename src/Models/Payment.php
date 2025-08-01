@@ -28,6 +28,7 @@ class Payment extends Model
     const STATUS_EXPIRED = 'expired';
     const STATUS_REFUNDED = 'refunded';
     const STATUS_PENDING = 'pending';
+    const STATUS_COMPLETED = 'completed';
 
     protected $table = 'payments';
 
@@ -72,7 +73,7 @@ class Payment extends Model
         }
     }
 
-    public function refund(int $amount)
+    public function refund(int $amount, $api_key = null)
     {
         $client = Payable::getProvider(
             $this->type,
@@ -82,7 +83,7 @@ class Payment extends Model
             throw new Exception("Refund is not implemented for " . get_class($client) . " yet.");
         }
 
-        $result = $client->refund($this, $amount);
+        $result = $client->refund($this, $amount, $api_key);
 
         return PaymentRefund::create([
             'payment_id' => $this->id,
@@ -95,14 +96,57 @@ class Payment extends Model
         ]);
     }
 
+    /**
+     * @deprecated deprecated, use createShipmentWithTracking instead
+     */
+    public function createShipment(array $lines = [], $api_key = null)
+    {
+        $client = Payable::getProvider(
+            $this->type,
+        );
+
+        if (!method_exists($client, 'createShipment')) {
+            throw new Exception(
+                "`createShipment` is not implemented for " . get_class($client) . " yet."
+            );
+        }
+
+        return $client->createShipment($this, $lines, $api_key);
+    }
+
+    public function createShipmentWithTracking(array $lines = [], array $tracking = [], $api_key = null)
+    {
+        $client = Payable::getProvider(
+            $this->type,
+        );
+
+        if (!method_exists($client, 'createShipmentWithTracking')) {
+            throw new Exception(
+                "`createShipmentWithTracking` is not implemented for " . get_class($client) . " yet."
+            );
+        }
+
+        return $client->createShipmentWithTracking($this, $lines, $tracking, $api_key);
+    }
+
     public function isOpen()
     {
         return $this->status === self::STATUS_OPEN;
     }
 
+    public function isPending()
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
     public function isPaid()
     {
-        return $this->status === self::STATUS_PAID;
+        return $this->status === self::STATUS_PAID && $this->paidInFull();
+    }
+
+    public function isCompleted()
+    {
+        return $this->status === self::STATUS_COMPLETED;
     }
 
     public function isFailed()
@@ -189,6 +233,11 @@ class Payment extends Model
             $payment->remaining_amount = $payment->total_amount - $payment->paid_amount;
             $payment->completed = ($payment->remaining_amount == 0) ? true : false;
         });
+    }
+
+    public function paidInFull()
+    {
+        return $this->payable->getTotalAmount() == $this->paid_amount;
     }
 
     public function getIncrementing()

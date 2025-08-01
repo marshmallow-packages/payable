@@ -4,18 +4,19 @@ namespace Marshmallow\Payable\Providers;
 
 use Exception;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Mollie\Api\MollieApiClient;
 use Marshmallow\Payable\Models\Payment;
 use Mollie\Laravel\Wrappers\MollieApiWrapper;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
 use Marshmallow\Payable\Resources\PaymentRefund;
-use Mollie\Api\Resources\Payment as MolliePayment;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
 class Mollie extends Provider implements PaymentProviderContract
 {
-    protected function getClient($api_key = null): MollieApiWrapper
+    protected function getClient($api_key = null): MollieApiWrapper|MollieApiClient
     {
         $api = MollieApi::api();
         if ($api_key) {
@@ -41,6 +42,7 @@ class Mollie extends Provider implements PaymentProviderContract
                 ),
             ],
             'description' => $this->getPayableDescription(),
+            'cancelUrl' => $this->cancelUrl(),
             'redirectUrl' => $this->redirectUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
@@ -91,20 +93,39 @@ class Mollie extends Provider implements PaymentProviderContract
             'consumerDateOfBirth' => $this->payableModel->getConsumerDateOfBirth(),
             // 'description' => $this->getPayableDescription(),
             'redirectUrl' => $this->redirectUrl(),
+            'cancelUrl' => $this->cancelUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
         ];
 
         $this->payableModel->items->each(function ($item) use (&$payload) {
+            $type = match ($item->type) {
+                'DISCOUNT' => 'discount',
+                'SHIPPING' => 'shipping_fee',
+                'PRODUCT' => 'physical',
+                default => 'physical',
+            };
 
-            $payload['lines'][] = [
-                'type' => 'physical', //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
+            $discount_amount = 0;
+            $total_amount = $item->getTotalAmount();
+            $vat_amount = $item->getTotalVatAmount();
+
+            $has_price_difference = ($item->discount_including_vat !== $item->price_including_vat);
+
+            if ($has_price_difference && $item->discount_including_vat && $item->discount_including_vat > 0) {
+                $discount_amount = ($item->price_including_vat - $item->discount_including_vat) * $item->quantity;
+                $total_amount = $total_amount - $discount_amount;
+                $vat_amount = ($item->discount_vat_amount * $item->quantity);
+            }
+
+            $line_payload = [
+                'type' => $type, //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
                 'name' => $item->description,
                 'quantity' => $item->quantity,
                 'discountAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
                     'value' => $this->formatCentToDecimalString(
-                        0
+                        $discount_amount
                     ),
                 ],
                 'unitPrice' => [
@@ -116,34 +137,93 @@ class Mollie extends Provider implements PaymentProviderContract
                 'totalAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
                     'value' => $this->formatCentToDecimalString(
-                        $item->getTotalAmount()
+                        $total_amount
                     ),
                 ],
                 'vatRate' => (string) $item->vatrate->rate,
-                'vatAmount' =>
-                [
+                'vatAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
                     'value' => $this->formatCentToDecimalString(
-                        $item->getTotalVatAmount()
+                        $vat_amount
                     ),
                 ],
             ];
+
+            if (method_exists($item, 'parsePaymentItemPayload')) {
+                $line_payload = $item->parsePaymentItemPayload($line_payload);
+            }
+
+            $payload['lines'][] = $line_payload;
         });
 
         return $api->orders->create($payload);
     }
 
-    public function refund(Payment $payment, int $amount)
+    /**
+     * @deprecated deprecated, use createShipmentWithTracking instead
+     */
+    public function createShipment(Payment $payment, array $lines = [], $api_key = null)
     {
-        $api = $this->getClient();
-        $mollie_payment = $api->payments->get($payment->provider_id);
+        $api = $this->getClient($api_key);
+        $order = $api->orders->get($payment->provider_id);
+        if (!empty($lines)) {
+            return $order->createShipment([
+                'lines' => $lines,
+            ]);
+        }
 
-        $result = $api->payments->refund($mollie_payment, [
-            'amount' => [
-                'currency' => $this->getCurrencyIso4217Code(),
-                'value' => $this->formatCentToDecimalString($amount),
-            ],
-        ]);
+        return $order->shipAll();
+    }
+
+    public function createShipmentWithTracking(Payment $payment, array $lines = [], array $tracking = [], $api_key = null)
+    {
+        $api = $this->getClient($api_key);
+        $order = $api->orders->get($payment->provider_id);
+        $options = [];
+
+        if (!empty($tracking)) {
+            $options['tracking'] = $tracking;
+        }
+
+        if (!empty($lines)) {
+            $options['lines'] = $lines;
+        }
+
+        if (!empty($options)) {
+            return $order->createShipment($options);
+        }
+
+        return $order->shipAll();
+    }
+
+    protected function isPayment($payment_id)
+    {
+        return Str::of($payment_id)->startsWith('tr_');
+    }
+
+    protected function isOrder($payment_id)
+    {
+        return Str::of($payment_id)->startsWith('ord_');
+    }
+
+    public function refund(Payment $payment, int $amount, $api_key = null)
+    {
+        $api = $this->getClient($api_key);
+
+        if ($this->isPayment($payment->provider_id)) {
+            /** Refund payments */
+            $mollie_payment = $api->payments->get($payment->provider_id);
+            $result = $api->payments->refund($mollie_payment, [
+                'amount' => [
+                    'currency' => $this->getCurrencyIso4217Code(),
+                    'value' => $this->formatCentToDecimalString($amount),
+                ],
+            ]);
+        } else {
+            /** Refund orders */
+            $mollie_order = $api->orders->get($payment->provider_id);
+            $result = $mollie_order->refundAll();
+        }
 
         return new PaymentRefund(
             provider_id: $result->id,
@@ -181,6 +261,7 @@ class Mollie extends Provider implements PaymentProviderContract
     {
         switch ($status) {
             case 'open':
+            case 'created':
                 return Payment::STATUS_OPEN;
                 break;
 
@@ -205,6 +286,10 @@ class Mollie extends Provider implements PaymentProviderContract
                 return Payment::STATUS_EXPIRED;
                 break;
 
+            case 'completed':
+                return Payment::STATUS_COMPLETED;
+                break;
+
             default:
                 throw new Exception("Unknown payment status {$status}");
                 break;
@@ -213,7 +298,7 @@ class Mollie extends Provider implements PaymentProviderContract
 
     public function getPaymentStatus(Payment $payment)
     {
-        if (config('payable.use_order_payments') === true) {
+        if ($this->isOrder($payment->provider_id)) {
             return MollieApi::api()->orders->get($payment->provider_id);
         }
 
@@ -225,6 +310,7 @@ class Mollie extends Provider implements PaymentProviderContract
         $payment = $this->getPaymentStatus($payment);
         $status = $this->convertStatus($payment->status);
         $paid_amount = intval(floatval($payment->amount->value) * 100);
+
         return new PaymentStatusResponse($status, $paid_amount);
     }
 
@@ -240,24 +326,28 @@ class Mollie extends Provider implements PaymentProviderContract
     public function getCanceledAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return Carbon::parse($info->canceledAt);
     }
 
     public function getExpiresAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return Carbon::parse($info->expiresAt);
     }
 
     public function getFailedAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return Carbon::parse($info->failedAt);
     }
 
     public function getPaidAt(Payment $payment): ?Carbon
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return Carbon::parse($info->paidAt);
     }
 
@@ -292,6 +382,7 @@ class Mollie extends Provider implements PaymentProviderContract
     public function getPaymentTypeName(Payment $payment): ?string
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
+
         return $info->method;
     }
 }
