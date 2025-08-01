@@ -30,8 +30,8 @@ class Provider
         PaymentType $paymentType,
         $testPayment = null,
         $api_key = null,
-        callable $extraPaymentDataCallback = null,
-        callable $extraPaymentModifier = null
+        ?callable $extraPaymentDataCallback = null,
+        ?callable $extraPaymentModifier = null
     ): string {
         $this->payableModel = $payableModel;
         $this->paymentType = $paymentType;
@@ -340,14 +340,14 @@ class Provider
         return null;
     }
 
-    protected function storeResultPayload(Payment $payment, string $result = null): void
+    protected function storeResultPayload(Payment $payment, ?string $result = null): void
     {
         $payment->update([
             'result_payload' => $result,
         ]);
     }
 
-    protected function storeResultPayloadText(Payment $payment, string $result = null): void
+    protected function storeResultPayloadText(Payment $payment, ?string $result = null): void
     {
         $payment->update([
             'result_payload_text' => $result,
