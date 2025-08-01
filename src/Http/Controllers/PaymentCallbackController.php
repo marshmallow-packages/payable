@@ -37,10 +37,6 @@ class PaymentCallbackController extends Controller
         return $provider->handleWebhook($payment, $request);
     }
 
-    public function paypal(Request $request)
-    {
-        mail('stef@marshmallow.dev', 'PayPal callback', json_encode($request->all()));
-    }
 
     public function adyen(Request $request)
     {

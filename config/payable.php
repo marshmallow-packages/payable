@@ -86,15 +86,6 @@ return [
         'status_api_key' => env('IPPIES_STATUS_KEY'),
     ],
 
-    'paypal' => [
-        'client_id' => env('PAYPAL_CLIENT_ID', ''),
-        'secret' => env('PAYPAL_SECRET', ''),
-        'mode' => env('PAYPAL_MODE', ''),
-        'connection_time_out' => env('PAYPAL_COONNECTION_TIME_OUT', 30),
-        'log_enabled' => env('PAYPAL_LOG_ENABLED', true),
-        'file_name' => env('PAYPAL_LOG_FILE_NAME', storage_path() . '/logs/paypal.log'),
-        'log_level' => env('PAYPAL_LOG_LEVEL', 'ERROR'),
-    ],
 
     'buckaroo' => [
         'website_key' => env('BUCKAROO_WEBSITE_KEY'),

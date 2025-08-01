@@ -47,13 +47,6 @@ class PayableTest
         return $cart->startPayment($payment_type, $test, $api_key);
     }
 
-    public function paypal($test = false, $api_key = null)
-    {
-        $cart = $this->getTestCart();
-        $payment_type = $this->getPaymentType(Payable::PAYPAL);
-
-        return $cart->startPayment($payment_type, $test, $api_key);
-    }
 
     public function buckaroo($test = true)
     {

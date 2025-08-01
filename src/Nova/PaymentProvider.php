@@ -91,7 +91,6 @@ class PaymentProvider extends Resource
                 PaymentProviderModel::PROVIDER_CUSTOM => 'Custom',
                 PaymentProviderModel::PROVIDER_MOLLIE => 'Mollie',
                 PaymentProviderModel::PROVIDER_MULTI_SAFE_PAY => 'Multi Safe Pay',
-                Payable::PAYPAL => 'PayPal',
                 Payable::IPPIES => 'ippies.nl',
             ]),
             // Boolean::make(__('Use simple checkout'), 'simple_checkout')->help(
