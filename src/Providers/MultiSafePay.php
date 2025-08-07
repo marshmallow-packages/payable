@@ -35,7 +35,7 @@ class MultiSafePay extends Provider implements PaymentProviderContract
         $multiSafepaySdk = $this->getClient();
 
         $description = $this->getPayableDescription();
-        $amount = new Money($this->getPayableAmount(), $this->getCurrencyIso4217Code());
+        $amount = new \MultiSafepay\ValueObject\Money($this->getPayableAmount(), $this->getCurrencyIso4217Code());
 
         $paymentOptions = (new PaymentOptions)
             ->addNotificationUrl($this->webhookUrl())
@@ -61,7 +61,7 @@ class MultiSafePay extends Provider implements PaymentProviderContract
             $this->payableModel->items->each(function ($item) use (&$items) {
                 $items[] = (new Item())
                     ->addName($item->description)
-                    ->addUnitPrice(new Money($item->price_including_vat, 'EUR')) // Amount must be in cents
+                    ->addPrice(new \MultiSafepay\ValueObject\Money($item->price_including_vat, 'EUR')) // Amount must be in cents
                     ->addQuantity($item->quantity)
                     ->addDescription($item->description)
                     ->addMerchantItemId(

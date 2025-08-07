@@ -73,7 +73,7 @@ trait PayableWithItems
 
     public function getBillingCountry()
     {
-        return $this->invoiceAddress()->first()?->country?->alpha2 ?? 'NL';
+        return $this->invoiceAddress()->first()?->country->alpha2 ?? 'NL';
     }
 
     public function getShippingOrganizationName()
@@ -135,7 +135,7 @@ trait PayableWithItems
 
     public function getShippingCountry()
     {
-        return $this->shippingAddress()->first()?->country?->alpha2 ?? 'NL';
+        return $this->shippingAddress()->first()?->country->alpha2 ?? 'NL';
     }
 
     public abstract function items();
