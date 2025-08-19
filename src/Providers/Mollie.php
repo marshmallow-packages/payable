@@ -16,7 +16,7 @@ use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
 class Mollie extends Provider implements PaymentProviderContract
 {
-    protected function getClient($api_key = null): MollieApiWrapper|MollieApiClient
+    protected function getClient($api_key = null)
     {
         $api = MollieApi::api();
         if ($api_key) {

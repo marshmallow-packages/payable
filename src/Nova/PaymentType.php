@@ -42,8 +42,9 @@ class PaymentType extends Resource
      *
      * @return string|null
      */
-    public function subtitle()
+    public function subtitle(): ?string
     {
+        return null;
         // return $this->provider->name;
     }
 

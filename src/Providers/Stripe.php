@@ -47,14 +47,14 @@ class Stripe extends Provider implements PaymentProviderContract
             'cancel_url' => $this->cancelUrl(),
         ];
 
-        if ($this->payableModel?->id) {
-            $session_data['client_reference_id'] = $this->payableModel?->id;
+        if ($this->payableModel->id) {
+            $session_data['client_reference_id'] = $this->payableModel->id;
         }
 
         $session_data['metadata'] = [
             'payable_type' => $this->payableModel?->getMorphClass(),
             'payable_id' => $this->payableModel?->id,
-            'customer_id' => $this->payableModel?->customer_id ?? '',
+            'customer_id' => $this->payableModel->customer_id ?? '',
         ];
 
         if ($this->payableModel?->customer?->payable_external_id) {
