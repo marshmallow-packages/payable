@@ -125,9 +125,6 @@ class MultiSafePay extends Provider implements PaymentProviderContract
 
     public function convertStatus($status): string
     {
-        /**
-         * TO DO: handle status `shipped`.
-         */
         switch ($status) {
             case 'initialized':
             case 'void':
@@ -156,6 +153,11 @@ class MultiSafePay extends Provider implements PaymentProviderContract
             case 'partial_refunded':
             case 'chargeback':
                 return Payment::STATUS_REFUNDED;
+                break;
+
+            case 'shipped':
+                // Goods have been shipped and payment is being finalized
+                return Payment::STATUS_COMPLETED;
                 break;
 
             default:
