@@ -6,6 +6,7 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use MultiSafepay\ValueObject\Money;
+use MultiSafepay\ValueObject\UnitPrice;
 use Marshmallow\Payable\Models\Payment;
 use MultiSafepay\ValueObject\IpAddress;
 use MultiSafepay\ValueObject\Customer\Address;
@@ -61,7 +62,7 @@ class MultiSafePay extends Provider implements PaymentProviderContract
             $this->payableModel->items->each(function ($item) use (&$items) {
                 $items[] = (new Item())
                     ->addName($item->description)
-                    ->addPrice(new \MultiSafepay\ValueObject\Money($item->price_including_vat, 'EUR')) // Amount must be in cents
+                    ->addUnitPriceValue(new UnitPrice($item->price_including_vat / 100)) // Amount must be in whole units, not cents
                     ->addQuantity($item->quantity)
                     ->addDescription($item->description)
                     ->addMerchantItemId(
