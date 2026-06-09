@@ -5,4 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+-   **BREAKING:** Bumped `mollie/laravel-mollie` from `^3.0` to `^4.0` (pulls in
+    `mollie/mollie-api-php` v3) and raised the minimum PHP version from `^8.1` to
+    `^8.2`. This unblocks Laravel 13 support.
+-   Migrated the Mollie provider from the removed Orders API to the Payments API
+    ([migration guide](https://docs.mollie.com/docs/migrating-from-orders-to-payments)):
+    -   `createOrder()` now calls `payments->create()` with a `lines` array
+        instead of `orders->create()`. `orderNumber` moved to
+        `metadata.order_number` and each line `name` became `description`.
+    -   **BREAKING:** `createShipment()` / `createShipmentWithTracking()` now
+        create amount-based payment captures instead of order shipments. Their
+        signatures changed from `array $lines` to `?int $amount`; tracking is
+        stored in capture metadata. Update any callers.
+    -   `refund()` and `getPaymentStatus()` now use the `payments` endpoint
+        exclusively.
+-   Added `payable.mollie.capture_mode` config (env `PAYABLE_MOLLIE_CAPTURE_MODE`)
+    for the pay-later authorize → capture flow (klarna, billie, in3, riverty).
+
+### Removed
+
+-   Dropped the `consumerDateOfBirth` field and the `completed` payment status
+    (both Orders-API only).
+-   Removed dead Mollie imports from the Buckaroo provider.
+
+### Deprecated
+
+-   Legacy Mollie order ids (`ord_…`) can no longer be fetched, refunded or
+    shipped. Those operations now throw a clear exception.
+
+See [`UPGRADE.md`](UPGRADE.md) for upgrade instructions.
+
 ## [1.0.0] - 2021-01-26

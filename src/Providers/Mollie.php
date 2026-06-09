@@ -232,11 +232,6 @@ class Mollie extends Provider implements PaymentProviderContract
         return $api->paymentCaptures->createForId($payment->provider_id, $options);
     }
 
-    protected function isPayment($payment_id)
-    {
-        return Str::of($payment_id)->startsWith('tr_');
-    }
-
     protected function isOrder($payment_id)
     {
         return Str::of($payment_id)->startsWith('ord_');
