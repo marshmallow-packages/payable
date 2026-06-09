@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         exclusively.
 -   Added `payable.mollie.capture_mode` config (env `PAYABLE_MOLLIE_CAPTURE_MODE`)
     for the pay-later authorize → capture flow (klarna, billie, in3, riverty).
+-   Bumped dev dependencies to match the new Laravel 11/12 floor:
+    `orchestra/testbench` `^6.2` → `^9.0 || ^10.0`, `phpunit/phpunit`
+    `^9.5` → `^10.5 || ^11.0`. Migrated `phpunit.xml` to the PHPUnit 11 schema.
 - **PayPal Provider Removed**: The PayPal payment provider has been completely removed from the package
   - The `PayPal` provider class has been deleted
   - PayPal constants and references removed from the main `Payable` class
@@ -57,6 +60,8 @@ If you were using Ippies in your application:
 -   Dropped the `consumerDateOfBirth` field and the `completed` payment status
     (both Orders-API only).
 -   Removed dead Mollie imports from the Buckaroo provider.
+-   Removed unused `marshmallow/helpers` and `marshmallow/commands` dependencies
+    (no references anywhere in the package).
 
 ### Deprecated
 
