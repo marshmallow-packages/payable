@@ -56,7 +56,6 @@ class Mollie extends Provider implements PaymentProviderContract
                 ),
             ],
             'description' => $this->getPayableDescription(),
-            'cancelUrl' => $this->cancelUrl(),
             'redirectUrl' => $this->redirectUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
@@ -116,7 +115,6 @@ class Mollie extends Provider implements PaymentProviderContract
                 'country' => $this->payableModel->getShippingCountry(), //required
             ],
             'redirectUrl' => $this->redirectUrl(),
-            'cancelUrl' => $this->cancelUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
         ];
@@ -149,7 +147,7 @@ class Mollie extends Provider implements PaymentProviderContract
                 $vat_amount = ($item->discount_vat_amount * $item->quantity);
             }
 
-            $line_payload = [
+            $payload['lines'][] = [
                 'type' => $type, //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
                 'description' => $item->description,
                 'quantity' => $item->quantity,
@@ -179,12 +177,6 @@ class Mollie extends Provider implements PaymentProviderContract
                     ),
                 ],
             ];
-
-            if (method_exists($item, 'parsePaymentItemPayload')) {
-                $line_payload = $item->parsePaymentItemPayload($line_payload);
-            }
-
-            $payload['lines'][] = $line_payload;
         });
 
         return $api->payments->create($payload);
@@ -301,7 +293,6 @@ class Mollie extends Provider implements PaymentProviderContract
     {
         switch ($status) {
             case 'open':
-            case 'created':
                 return Payment::STATUS_OPEN;
                 break;
 

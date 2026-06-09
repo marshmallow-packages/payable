@@ -76,6 +76,31 @@ class Provider
         );
     }
 
+    public function prepareCustomPayment(
+        Model $payableModel,
+        PaymentType $paymentType,
+        $testPayment = null,
+        $api_key = null,
+    ): Payment {
+        $this->payableModel = $payableModel;
+        $this->paymentType = $paymentType;
+        $this->testPayment = $testPayment;
+        $method = ($this->is_recurring) ? 'createRecurringPayment' : 'createPayment';
+
+        $this->payment = $payableModel->payments()->create([
+            'payment_provider_id' => $paymentType->payment_provider_id,
+            'payment_type_id' => $paymentType->id,
+            'simple_checkout' => $paymentType->simple_checkout,
+            'total_amount' => $payableModel->getTotalAmount(),
+            'remaining_amount' => $payableModel->getTotalAmount(),
+            'started' => now(),
+            'is_test' => $this->isTestPayment($testPayment),
+            'start_ip' => request()->ip(),
+        ]);
+
+        return $this->payment;
+    }
+
     public function handleReturn(Payment $payment, Request $request): RedirectResponse
     {
         $response = $this->handleReturnNotification($payment, $request);
@@ -96,9 +121,8 @@ class Provider
             $route_name = config('payable.routes.payment_unknown');
         }
 
-        $before_redirect_action = config('payable.actions.before_redirect_to_confirmation_page');
-        if ($before_redirect_action && class_exists($before_redirect_action)) {
-            $payment = $before_redirect_action::handle($payment);
+        if (class_exists(config('payable.actions.before_redirect_to_confirmation_page'))) {
+            $payment = config('payable.actions.before_redirect_to_confirmation_page')::handle($payment);
         }
 
         return redirect()->route(
