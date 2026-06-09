@@ -8,6 +8,19 @@ return [
 
     'shared_with_expose' => env('SHARED_WITH_EXPOSE', false),
 
+    /**
+     * Mollie specific settings.
+     *
+     * capture_mode: set to "manual" when you rely on the authorize -> capture
+     * flow for pay-later methods (klarna, billie, in3, riverty). With manual
+     * capture those methods reach the "authorized" status and are only captured
+     * when you call createShipment()/createShipmentWithTracking(). Leave null
+     * for immediate capture (the default).
+     */
+    'mollie' => [
+        'capture_mode' => env('PAYABLE_MOLLIE_CAPTURE_MODE'),
+    ],
+
     'routes' => [
         /**
          * This is the route name where all successfull pages should be redirected to.
@@ -57,8 +70,8 @@ return [
     'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
-        'webhook' => env('STRIPE_WEBHOOK_SECRET'),
-
+        // 'webhook' => env('STRIPE_WEBHOOK_SECRET'),
+        'webhook' => env('STRIPE_PAYABLE_WEBHOOK_SECRET', config('cashier.webhook.secret')),
         'event_types' => [
             'payment_intent.succeeded',
             'payment_intent.requires_action',
@@ -77,24 +90,7 @@ return [
         'key' => env('MULTI_SAFE_PAY_KEY')
     ],
 
-    'ippies' => [
-        'shop_id' => env('IPPIES_SHOP_ID'),
-        'key' => env('IPPIES_KEY'),
-        'api' => 'https://payment.ippies.nl/paymod.php',
-        'test_api' => 'https://payment.ippiestest.nl/paymod.php',
-        'status_api' => 'http://api.ippies.nl',
-        'status_api_key' => env('IPPIES_STATUS_KEY'),
-    ],
 
-    'paypal' => [
-        'client_id' => env('PAYPAL_CLIENT_ID', ''),
-        'secret' => env('PAYPAL_SECRET', ''),
-        'mode' => env('PAYPAL_MODE', ''),
-        'connection_time_out' => env('PAYPAL_COONNECTION_TIME_OUT', 30),
-        'log_enabled' => env('PAYPAL_LOG_ENABLED', true),
-        'file_name' => env('PAYPAL_LOG_FILE_NAME', storage_path() . '/logs/paypal.log'),
-        'log_level' => env('PAYPAL_LOG_LEVEL', 'ERROR'),
-    ],
 
     'buckaroo' => [
         'website_key' => env('BUCKAROO_WEBSITE_KEY'),

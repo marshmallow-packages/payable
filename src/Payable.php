@@ -4,9 +4,7 @@ namespace Marshmallow\Payable;
 
 use Exception;
 use Marshmallow\Payable\Providers\Adyen;
-use Marshmallow\Payable\Providers\Ippies;
 use Marshmallow\Payable\Providers\Mollie;
-use Marshmallow\Payable\Providers\PayPal;
 use Marshmallow\Payable\Providers\Stripe;
 use Marshmallow\Payable\Models\PaymentType;
 use Marshmallow\Payable\Providers\Buckaroo;
@@ -18,8 +16,6 @@ class Payable
     public const MOLLIE = 'MOLLIE';
     public const MULTI_SAFE_PAY = 'MULTI_SAFE_PAY';
     public const STRIPE = 'STRIPE';
-    public const IPPIES = 'IPPIES';
-    public const PAYPAL = 'PAYPAL';
     public const ADYEN = 'ADYEN';
     public const BUCKAROO = 'BUCKAROO';
 
@@ -38,13 +34,6 @@ class Payable
                 return new Stripe;
                 break;
 
-            case self::IPPIES:
-                return new Ippies;
-                break;
-
-            case self::PAYPAL:
-                return new PayPal;
-                break;
 
             case self::ADYEN:
                 return new Adyen;

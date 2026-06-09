@@ -99,7 +99,7 @@ class Payment extends Model
     /**
      * @deprecated deprecated, use createShipmentWithTracking instead
      */
-    public function createShipment(array $lines = [], $api_key = null)
+    public function createShipment(?int $amount = null, $api_key = null)
     {
         $client = Payable::getProvider(
             $this->type,
@@ -111,10 +111,10 @@ class Payment extends Model
             );
         }
 
-        return $client->createShipment($this, $lines, $api_key);
+        return $client->createShipment($this, $amount, $api_key);
     }
 
-    public function createShipmentWithTracking(array $lines = [], array $tracking = [], $api_key = null)
+    public function createShipmentWithTracking(?int $amount = null, array $tracking = [], $api_key = null)
     {
         $client = Payable::getProvider(
             $this->type,
@@ -126,7 +126,7 @@ class Payment extends Model
             );
         }
 
-        return $client->createShipmentWithTracking($this, $lines, $tracking, $api_key);
+        return $client->createShipmentWithTracking($this, $amount, $tracking, $api_key);
     }
 
     public function isOpen()
@@ -141,7 +141,7 @@ class Payment extends Model
 
     public function isPaid()
     {
-        return $this->status === self::STATUS_PAID && $this->paidInFull();
+        return $this->status === self::STATUS_PAID;
     }
 
     public function isCompleted()
@@ -233,11 +233,6 @@ class Payment extends Model
             $payment->remaining_amount = $payment->total_amount - $payment->paid_amount;
             $payment->completed = ($payment->remaining_amount == 0) ? true : false;
         });
-    }
-
-    public function paidInFull()
-    {
-        return $this->payable->getTotalAmount() == $this->paid_amount;
     }
 
     public function getIncrementing()
