@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Dropped the `consumerDateOfBirth` field and the `completed` payment status
     (both Orders-API only).
 -   Removed dead Mollie imports from the Buckaroo provider.
+-   Removed unused `marshmallow/helpers` and `marshmallow/commands` dependencies
+    (no references anywhere in the package).
 
 ### Deprecated
 
