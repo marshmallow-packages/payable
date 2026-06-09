@@ -8,6 +8,19 @@ return [
 
     'shared_with_expose' => env('SHARED_WITH_EXPOSE', false),
 
+    /**
+     * Mollie specific settings.
+     *
+     * capture_mode: set to "manual" when you rely on the authorize -> capture
+     * flow for pay-later methods (klarna, billie, in3, riverty). With manual
+     * capture those methods reach the "authorized" status and are only captured
+     * when you call createShipment()/createShipmentWithTracking(). Leave null
+     * for immediate capture (the default).
+     */
+    'mollie' => [
+        'capture_mode' => env('PAYABLE_MOLLIE_CAPTURE_MODE'),
+    ],
+
     'routes' => [
         /**
          * This is the route name where all successfull pages should be redirected to.

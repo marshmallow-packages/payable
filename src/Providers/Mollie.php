@@ -6,14 +6,28 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Mollie\Api\MollieApiClient;
 use Marshmallow\Payable\Models\Payment;
-use Mollie\Laravel\Wrappers\MollieApiWrapper;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
 use Marshmallow\Payable\Resources\PaymentRefund;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
 
+/**
+ * Mollie payment provider.
+ *
+ * As of mollie/laravel-mollie v4 (mollie-api-php v3) the Orders API has been
+ * removed by Mollie. Everything is handled through the Payments API:
+ *
+ *   - Orders with line items        -> payments->create() with a "lines" array
+ *   - Order shipments / shipAll()   -> payment captures (amount based)
+ *   - Order refunds / refundAll()   -> payments->refund() (amount based)
+ *
+ * See https://docs.mollie.com/docs/migrating-from-orders-to-payments.
+ *
+ * Backwards compatibility note: Mollie order ids (ord_...) created before this
+ * upgrade can no longer be fetched, refunded or shipped — the Orders API no
+ * longer exists. Those operations now throw a clear exception.
+ */
 class Mollie extends Provider implements PaymentProviderContract
 {
     protected function getClient($api_key = null)
@@ -49,6 +63,14 @@ class Mollie extends Provider implements PaymentProviderContract
         ]);
     }
 
+    /**
+     * Create a Mollie payment that carries order line details.
+     *
+     * This replaces the old Orders API ($api->orders->create()). The line and
+     * address payloads keep the same shape Mollie uses, with two field renames
+     * required by the Payments API: the order "orderNumber" moves to metadata
+     * and each line "name" becomes "description".
+     */
     public function createOrder($api_key = null)
     {
         $api = $this->getClient($api_key);
@@ -60,7 +82,10 @@ class Mollie extends Provider implements PaymentProviderContract
                     $this->getPayableAmount()
                 ),
             ],
-            'orderNumber' => $this->getPayableIdentifier(),
+            'description' => $this->getPayableDescription(),
+            'metadata' => [
+                'order_number' => $this->getPayableIdentifier(),
+            ],
             'lines' => [],
             'billingAddress' => [
                 'organizationName' => $this->payableModel->getBillingOrganizationName(),
@@ -90,13 +115,19 @@ class Mollie extends Provider implements PaymentProviderContract
                 'region' => $this->payableModel->getShippingRegion(),
                 'country' => $this->payableModel->getShippingCountry(), //required
             ],
-            'consumerDateOfBirth' => $this->payableModel->getConsumerDateOfBirth(),
-            // 'description' => $this->getPayableDescription(),
             'redirectUrl' => $this->redirectUrl(),
             'cancelUrl' => $this->cancelUrl(),
             'webhookUrl' => $this->webhookUrl(),
             'locale' => config('payable.locale'),
         ];
+
+        // Pay-later methods (klarna, billie, in3, riverty) only reach the
+        // "authorized" state — instead of being captured immediately — when
+        // manual capture is requested. Enable this through config when you rely
+        // on the authorize -> ship/capture flow below.
+        if ($capture_mode = config('payable.mollie.capture_mode')) {
+            $payload['captureMode'] = $capture_mode;
+        }
 
         $this->payableModel->items->each(function ($item) use (&$payload) {
             $type = match ($item->type) {
@@ -120,7 +151,7 @@ class Mollie extends Provider implements PaymentProviderContract
 
             $line_payload = [
                 'type' => $type, //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
-                'name' => $item->description,
+                'description' => $item->description,
                 'quantity' => $item->quantity,
                 'discountAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
@@ -156,44 +187,49 @@ class Mollie extends Provider implements PaymentProviderContract
             $payload['lines'][] = $line_payload;
         });
 
-        return $api->orders->create($payload);
+        return $api->payments->create($payload);
     }
 
     /**
-     * @deprecated deprecated, use createShipmentWithTracking instead
+     * Capture (a part of) an authorized payment.
+     *
+     * Replaces the Orders API shipment flow. Captures are amount based — the
+     * Payments API has no per-line shipments — so pass the amount in cents you
+     * want to capture, or null to capture the full authorized amount.
+     *
+     * @deprecated use createShipmentWithTracking instead
      */
-    public function createShipment(Payment $payment, array $lines = [], $api_key = null)
+    public function createShipment(Payment $payment, ?int $amount = null, $api_key = null)
     {
-        $api = $this->getClient($api_key);
-        $order = $api->orders->get($payment->provider_id);
-        if (!empty($lines)) {
-            return $order->createShipment([
-                'lines' => $lines,
-            ]);
-        }
-
-        return $order->shipAll();
+        return $this->createShipmentWithTracking($payment, $amount, [], $api_key);
     }
 
-    public function createShipmentWithTracking(Payment $payment, array $lines = [], array $tracking = [], $api_key = null)
+    /**
+     * Capture (a part of) an authorized payment, optionally storing tracking
+     * details in the capture metadata (Mollie no longer tracks shipments).
+     */
+    public function createShipmentWithTracking(Payment $payment, ?int $amount = null, array $tracking = [], $api_key = null)
     {
+        $this->guardAgainstLegacyOrder($payment);
+
         $api = $this->getClient($api_key);
-        $order = $api->orders->get($payment->provider_id);
-        $options = [];
+
+        $options = [
+            'description' => $this->getPayableDescription(),
+        ];
+
+        if (!is_null($amount)) {
+            $options['amount'] = [
+                'currency' => $this->getCurrencyIso4217Code(),
+                'value' => $this->formatCentToDecimalString($amount),
+            ];
+        }
 
         if (!empty($tracking)) {
-            $options['tracking'] = $tracking;
+            $options['metadata'] = ['tracking' => $tracking];
         }
 
-        if (!empty($lines)) {
-            $options['lines'] = $lines;
-        }
-
-        if (!empty($options)) {
-            return $order->createShipment($options);
-        }
-
-        return $order->shipAll();
+        return $api->paymentCaptures->createForId($payment->provider_id, $options);
     }
 
     protected function isPayment($payment_id)
@@ -206,24 +242,33 @@ class Mollie extends Provider implements PaymentProviderContract
         return Str::of($payment_id)->startsWith('ord_');
     }
 
+    /**
+     * The Orders API has been removed by Mollie. Any operation on a legacy
+     * order id can no longer be performed against the API.
+     */
+    protected function guardAgainstLegacyOrder(Payment $payment): void
+    {
+        if ($this->isOrder($payment->provider_id)) {
+            throw new Exception(
+                "Mollie order {$payment->provider_id} can no longer be processed: the Mollie Orders API has been removed. See https://docs.mollie.com/docs/migrating-from-orders-to-payments."
+            );
+        }
+    }
+
     public function refund(Payment $payment, int $amount, $api_key = null)
     {
+        $this->guardAgainstLegacyOrder($payment);
+
         $api = $this->getClient($api_key);
 
-        if ($this->isPayment($payment->provider_id)) {
-            /** Refund payments */
-            $mollie_payment = $api->payments->get($payment->provider_id);
-            $result = $api->payments->refund($mollie_payment, [
-                'amount' => [
-                    'currency' => $this->getCurrencyIso4217Code(),
-                    'value' => $this->formatCentToDecimalString($amount),
-                ],
-            ]);
-        } else {
-            /** Refund orders */
-            $mollie_order = $api->orders->get($payment->provider_id);
-            $result = $mollie_order->refundAll();
-        }
+        $mollie_payment = $api->payments->get($payment->provider_id);
+
+        $result = $api->payments->refund($mollie_payment, [
+            'amount' => [
+                'currency' => $this->getCurrencyIso4217Code(),
+                'value' => $this->formatCentToDecimalString($amount),
+            ],
+        ]);
 
         return new PaymentRefund(
             provider_id: $result->id,
@@ -286,10 +331,6 @@ class Mollie extends Provider implements PaymentProviderContract
                 return Payment::STATUS_EXPIRED;
                 break;
 
-            case 'completed':
-                return Payment::STATUS_COMPLETED;
-                break;
-
             default:
                 throw new Exception("Unknown payment status {$status}");
                 break;
@@ -298,11 +339,9 @@ class Mollie extends Provider implements PaymentProviderContract
 
     public function getPaymentStatus(Payment $payment)
     {
-        if ($this->isOrder($payment->provider_id)) {
-            return MollieApi::api()->orders->get($payment->provider_id);
-        }
+        $this->guardAgainstLegacyOrder($payment);
 
-        return MollieApi::api()->payments->get($payment->provider_id);
+        return $this->getClient()->payments->get($payment->provider_id);
     }
 
     public function handleResponse(Payment $payment): PaymentStatusResponse
