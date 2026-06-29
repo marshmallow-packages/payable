@@ -231,7 +231,7 @@ class Stripe extends Provider implements PaymentProviderContract
         $payment_intent = $this->getPaymentStatus($payment);
 
         $status = $this->convertStatus($payment_intent->status);
-        $paid_amount = ($status == Payment::STATUS_PAID) ? $payment->amount_total : 0;
+        $paid_amount = ($status == Payment::STATUS_PAID) ? $payment->total_amount : 0;
         $paid_amount = intval(floatval($paid_amount));
 
         return new PaymentStatusResponse($status, $paid_amount);
