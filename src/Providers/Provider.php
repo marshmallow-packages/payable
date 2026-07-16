@@ -177,6 +177,20 @@ class Provider
         ]);
     }
 
+    /**
+     * Convert a decimal amount as reported by a payment provider into cents.
+     *
+     * Casting the multiplied float directly would truncate, and because most
+     * two decimal values have no exact binary float representation that costs
+     * a cent on roughly a third of all amounts.
+     *
+     * @param  string|float|int  $amount
+     */
+    public function formatDecimalStringToCent($amount): int
+    {
+        return (int) round(((float) $amount) * 100);
+    }
+
     protected function getPayableAmount(): int
     {
         return $this->payment->remaining_amount;

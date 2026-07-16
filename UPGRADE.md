@@ -1,5 +1,59 @@
 # Upgrade Guide
 
+## Nova resources removed
+
+The package no longer ships Nova resources. `src/Nova/Payment.php`,
+`src/Nova/PaymentProvider.php` and `src/Nova/PaymentType.php` are gone, the
+`nova.resources.*` config block is gone, and the `marshmallow/nova-tinymce`
+dependency — and with it `laravel/nova` — is no longer required.
+
+This is a **breaking change** for projects that registered the package's Nova
+resources.
+
+### Why
+
+The resources extended `App\Nova\Resource`, a class in the *consuming*
+application. The package therefore depended on its consumers, could not be
+tested in isolation, and dragged a `laravel/nova` requirement into every project
+using it — including projects that use Filament, or no admin panel at all. That
+dependency also made `composer install` fail for anyone without a Nova licence,
+which is why this package had no runnable test suite.
+
+Payment admin screens are project-level concerns. They differ per project
+anyway, and they are cheap to write.
+
+### Action required
+
+**If you do not register the package's Nova resources, no action is needed.**
+Nova auto-discovers `app/Nova` only, so unless you explicitly listed
+`Marshmallow\Payable\Nova\*` in your `NovaServiceProvider`, they were never
+loaded and removing them changes nothing.
+
+**If you do register them,** create the resources in your own project before
+upgrading. Point them at the models you have configured under
+`payable.models.*`:
+
+```php
+namespace App\Nova;
+
+class Payment extends Resource
+{
+    public static $model = \Marshmallow\Payable\Models\Payment::class;
+
+    // ... fields
+}
+```
+
+The 2.x resources are a usable starting point — copy them out of your `vendor/`
+directory (or from the git history) before upgrading, and adjust.
+
+**Remove the `nova` block from your published `config/payable.php`.** It now
+points at classes that no longer exist. Nothing reads it, so a stale block is
+harmless, but it is dead configuration.
+
+**If you referenced `config('payable.nova.resources.*')`** anywhere, replace it
+with your own resource class names.
+
 ## Upgrading to the Mollie Payments API (mollie/laravel-mollie v4)
 
 This release bumps `mollie/laravel-mollie` from `^3.0` to `^4.0`, which pulls in

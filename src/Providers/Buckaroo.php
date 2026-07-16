@@ -303,7 +303,7 @@ class Buckaroo extends Provider implements PaymentProviderContract
         $status = $this->convertStatus(
             Arr::get($payment, 'Status.Code.Code')
         );
-        $paid_amount = intval(floatval(Arr::get($payment, 'AmountDebit')) * 100);
+        $paid_amount = $this->formatDecimalStringToCent(Arr::get($payment, 'AmountDebit'));
         return new PaymentStatusResponse($status, $paid_amount);
     }
 

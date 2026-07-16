@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.0.0] - TBD
 
 ### BREAKING CHANGES
+-   **BREAKING:** Removed the Adyen remnants. `Payable::ADYEN`,
+    `Payable::getProvider()`'s Adyen branch and
+    `PaymentCallbackController::adyen()` all referred to
+    `Marshmallow\Payable\Providers\Adyen`, which has never existed in this
+    repository — so the package advertised a provider that fataled with
+    "Class not found" on use. The controller method was unroutable and had a
+    leftover `dd()` in it besides. Adyen was never supported; the constant now
+    reflects that. A payment type with an unknown provider type gets the regular
+    "This provider is not implemented yet" exception. If Adyen support is wanted,
+    it needs a real provider class. ([#99](https://github.com/marshmallow-packages/payable/issues/99))
+-   **BREAKING:** Removed the bundled Nova resources (`src/Nova/Payment.php`,
+    `src/Nova/PaymentProvider.php`, `src/Nova/PaymentType.php`), the
+    `nova.resources.*` config block, and the `marshmallow/nova-tinymce`
+    dependency that pulled in `laravel/nova`. The resources extended
+    `App\Nova\Resource` from the consuming application, so the package depended
+    on its own consumers and forced a Nova licence on every project — including
+    Filament projects. Build payment admin resources in the consuming project
+    instead. See [UPGRADE.md](UPGRADE.md#nova-resources-removed).
+
+    Dropping `laravel/nova` also makes `composer install` work without a Nova
+    licence, so the package's test suite can run again.
 -   **BREAKING:** Bumped `mollie/laravel-mollie` from `^3.0` to `^4.0` (pulls in
     `mollie/mollie-api-php` v3) and raised the minimum PHP version from `^8.1` to
     `^8.2`. This unblocks Laravel 13 support.
@@ -22,6 +43,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         stored in capture metadata. Update any callers.
     -   `refund()` and `getPaymentStatus()` now use the `payments` endpoint
         exclusively.
+-   Added a **Worldline Direct** provider (`Marshmallow\Payable\Providers\Worldline`)
+    built on `wl-online-payments-direct/sdk-php`. Hosted-checkout redirect flow,
+    status mapping, refunds, and iDEAL consumer details (IBAN, BIC, account
+    holder). Registered as `Payable::WORLDLINE` /
+    `PaymentProvider::PROVIDER_WORLDLINE`, configured under `payable.worldline.*`.
+    Because Worldline posts every webhook to one back-office-configured endpoint,
+    it has a dedicated `payable.worldline.webhook` route that verifies the
+    HMAC-SHA256 signature and resolves the payment from the event's merchant
+    reference, rather than the per-payment webhook route.
 -   Added `payable.mollie.capture_mode` config (env `PAYABLE_MOLLIE_CAPTURE_MODE`)
     for the pay-later authorize → capture flow (klarna, billie, in3, riverty).
 -   Bumped dev dependencies to match the new Laravel 11/12 floor:
