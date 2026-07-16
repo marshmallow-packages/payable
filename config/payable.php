@@ -51,14 +51,6 @@ return [
     'connections' => [
         'payment_type' => null,
     ],
-    'nova' => [
-        'resources' => [
-            'payment' => \Marshmallow\Payable\Nova\Payment::class,
-            'payment_provider' => \Marshmallow\Payable\Nova\PaymentProvider::class,
-            'payment_type' => \Marshmallow\Payable\Nova\PaymentType::class,
-        ]
-    ],
-
     'actions' => [
         'prepare_callback' => \Marshmallow\Payable\Actions\PrepareForCallback::class,
     ],

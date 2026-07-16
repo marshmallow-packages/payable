@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.0.0] - TBD
 
 ### BREAKING CHANGES
+-   **BREAKING:** Removed the bundled Nova resources (`src/Nova/Payment.php`,
+    `src/Nova/PaymentProvider.php`, `src/Nova/PaymentType.php`), the
+    `nova.resources.*` config block, and the `marshmallow/nova-tinymce`
+    dependency that pulled in `laravel/nova`. The resources extended
+    `App\Nova\Resource` from the consuming application, so the package depended
+    on its own consumers and forced a Nova licence on every project — including
+    Filament projects. Build payment admin resources in the consuming project
+    instead. See [UPGRADE.md](UPGRADE.md#nova-resources-removed).
+
+    Dropping `laravel/nova` also makes `composer install` work without a Nova
+    licence, so the package's test suite can run again.
 -   **BREAKING:** Bumped `mollie/laravel-mollie` from `^3.0` to `^4.0` (pulls in
     `mollie/mollie-api-php` v3) and raised the minimum PHP version from `^8.1` to
     `^8.2`. This unblocks Laravel 13 support.

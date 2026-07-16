@@ -23,3 +23,9 @@ Homestead.json
 # IDE and local tooling
 /.idea
 /.ai
+
+# Library: dependencies are resolved by the consuming project
+composer.lock
+
+# Test runner artefacts
+.phpunit.result.cache

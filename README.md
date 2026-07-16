@@ -8,7 +8,9 @@
 
 This package will make it possible to accept payments on all our laravel resources. This was orignaly build for our e-commerce package but can be used on anything.
 
-It ships integrations for **Mollie**, **MultiSafepay**, **Stripe** and **Buckaroo**, a set of payment models and Laravel Nova resources, payment status events, and a callback/webhook handler.
+It ships integrations for **Mollie**, **MultiSafepay**, **Stripe** and **Buckaroo**, a set of payment models, payment status events, and a callback/webhook handler.
+
+The package is admin-panel agnostic: it ships no Nova or Filament resources. Build the resources you need in the consuming project, against the models in `Marshmallow\Payable\Models` (or your own subclasses of them, registered via `payable.models.*`).
 
 ## Requirements
 
@@ -35,13 +37,12 @@ php artisan vendor:publish --provider="Marshmallow\Payable\PayableServiceProvide
 
 This publishes `config/payable.php`.
 
-### Publish Nova Resources
+### Admin resources
 
-```bash
-php artisan marshmallow:resource Payment Payable
-php artisan marshmallow:resource PaymentProvider Payable
-php artisan marshmallow:resource PaymentType Payable
-```
+The package does not ship admin resources. Create them in your own project for
+whichever panel it uses — Nova, Filament, or none at all — pointing at
+`Marshmallow\Payable\Models\Payment`, `PaymentProvider` and `PaymentType`, or at
+your own subclasses registered under `payable.models.*`.
 
 ## Configuration
 
@@ -57,7 +58,6 @@ After publishing you can tweak `config/payable.php`. The most relevant keys:
 | `locale` | `env('CASHIER_CURRENCY_LOCALE', 'nl_NL')` | Currency locale. |
 | `locale_iso_639` | `env('CASHIER_CURRENCY_LOCALE_ISO_639', 'nl')` | ISO 639 language code. |
 | `models.*` | Package models | Override the `payment`, `payment_provider`, `payment_type`, `payment_webhook`, `payment_status` and `user` models. |
-| `nova.resources.*` | Package Nova resources | Override the Nova resources used for `payment`, `payment_provider` and `payment_type`. |
 | `actions.prepare_callback` | `PrepareForCallback::class` | Action invoked when preparing a payment callback. |
 | `stripe.*` | env-driven | Stripe `key`, `secret`, `webhook` secret and the subscribed Stripe event types. |
 | `multisafepay.key` | `env('MULTI_SAFE_PAY_KEY')` | MultiSafepay API key. |
