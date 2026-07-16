@@ -334,7 +334,7 @@ class Mollie extends Provider implements PaymentProviderContract
     {
         $payment = $this->getPaymentStatus($payment);
         $status = $this->convertStatus($payment->status);
-        $paid_amount = intval(floatval($payment->amount->value) * 100);
+        $paid_amount = $this->formatDecimalStringToCent($payment->amount->value);
 
         return new PaymentStatusResponse($status, $paid_amount);
     }
