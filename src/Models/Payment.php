@@ -145,21 +145,21 @@ class Payment extends Model
     }
 
     /**
-     * Whether the amount settled covers the payable.
+     * Whether the amount settled covers what this payment was created for.
      *
      * A provider reporting "paid" only says the transaction succeeded, not
      * that it covered the full amount, so isPaid() asks this as well before
      * a payment counts as paid.
+     *
+     * This compares against the stored total rather than re-reading the
+     * payable, for the same reason saving() derives `completed` from the
+     * stored values: isPaid() is called from model events and while iterating
+     * collections of payments, so touching the relation here means a lazy load
+     * per payment.
      */
     public function paidInFull(): bool
     {
-        $payable = $this->payable;
-
-        if (!$payable) {
-            return false;
-        }
-
-        return $payable->getTotalAmount() == $this->paid_amount;
+        return $this->total_amount == $this->paid_amount;
     }
 
     public function isCompleted()

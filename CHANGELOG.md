@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     only says the transaction succeeded, not that it covered the full amount, so
     a short payment silently counted as paid on this line. The v2 line kept the
     guard; v3 and v4 lost it. `isPaid()` checks the settled amount again, and
-    `paidInFull()` is back — now returning false instead of fataling when the
-    payable is gone.
+    `paidInFull()` is back — now comparing against the payment's own
+    `total_amount` rather than re-reading the payable, so it costs no query and
+    keeps working when the payable is gone.
 
     This is breaking for anything that came to rely on the reverted behaviour:
     a payment marked `paid` whose `paid_amount` does not cover its payable no

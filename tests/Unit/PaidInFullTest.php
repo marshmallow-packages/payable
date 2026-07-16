@@ -60,16 +60,31 @@ class PaidInFullTest extends TestCase
     }
 
     #[Test]
-    public function a_payment_whose_payable_is_gone_is_not_paid_in_full(): void
+    public function it_answers_without_reading_the_payable(): void
     {
         /**
-         * Nothing left to compare the settled amount against. Before, this
-         * fataled on a null relation rather than answering.
+         * isPaid() runs from model events and while iterating collections of
+         * payments, so reading the payable here would mean a lazy load per
+         * payment — which strict consumers reject outright. The payment
+         * already knows the total it was created for.
          */
+        $payment = $this->paymentFor(total: 10000, paid: 10000);
+        $payment = Payment::findOrFail($payment->id);
+
+        $this->assertTrue($payment->paidInFull());
+        $this->assertFalse(
+            $payment->relationLoaded('payable'),
+            'paidInFull() must not pull in the payable relation.'
+        );
+    }
+
+    #[Test]
+    public function a_payment_whose_payable_is_gone_still_answers(): void
+    {
         $payment = $this->paymentFor(total: 10000, paid: 10000);
         $payment->payable->delete();
 
-        $this->assertFalse($payment->fresh()->paidInFull());
+        $this->assertTrue($payment->fresh()->paidInFull());
     }
 
     protected function paymentFor(int $total, int $paid, string $status = Payment::STATUS_PAID): Payment
