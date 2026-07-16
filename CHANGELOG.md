@@ -43,6 +43,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         stored in capture metadata. Update any callers.
     -   `refund()` and `getPaymentStatus()` now use the `payments` endpoint
         exclusively.
+-   Added a **Worldline Direct** provider (`Marshmallow\Payable\Providers\Worldline`)
+    built on `wl-online-payments-direct/sdk-php`. Hosted-checkout redirect flow,
+    status mapping, refunds, and iDEAL consumer details (IBAN, BIC, account
+    holder). Registered as `Payable::WORLDLINE` /
+    `PaymentProvider::PROVIDER_WORLDLINE`, configured under `payable.worldline.*`.
+    Because Worldline posts every webhook to one back-office-configured endpoint,
+    it has a dedicated `payable.worldline.webhook` route that verifies the
+    HMAC-SHA256 signature and resolves the payment from the event's merchant
+    reference, rather than the per-payment webhook route.
 -   Added `payable.mollie.capture_mode` config (env `PAYABLE_MOLLIE_CAPTURE_MODE`)
     for the pay-later authorize → capture flow (klarna, billie, in3, riverty).
 -   Bumped dev dependencies to match the new Laravel 11/12 floor:
