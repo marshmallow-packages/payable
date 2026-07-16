@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.0.0] - TBD
 
 ### BREAKING CHANGES
+-   **BREAKING:** Removed the Adyen remnants. `Payable::ADYEN`,
+    `Payable::getProvider()`'s Adyen branch and
+    `PaymentCallbackController::adyen()` all referred to
+    `Marshmallow\Payable\Providers\Adyen`, which has never existed in this
+    repository — so the package advertised a provider that fataled with
+    "Class not found" on use. The controller method was unroutable and had a
+    leftover `dd()` in it besides. Adyen was never supported; the constant now
+    reflects that. A payment type with an unknown provider type gets the regular
+    "This provider is not implemented yet" exception. If Adyen support is wanted,
+    it needs a real provider class. ([#99](https://github.com/marshmallow-packages/payable/issues/99))
 -   **BREAKING:** Removed the bundled Nova resources (`src/Nova/Payment.php`,
     `src/Nova/PaymentProvider.php`, `src/Nova/PaymentType.php`), the
     `nova.resources.*` config block, and the `marshmallow/nova-tinymce`

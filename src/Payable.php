@@ -3,7 +3,6 @@
 namespace Marshmallow\Payable;
 
 use Exception;
-use Marshmallow\Payable\Providers\Adyen;
 use Marshmallow\Payable\Providers\Mollie;
 use Marshmallow\Payable\Providers\Stripe;
 use Marshmallow\Payable\Models\PaymentType;
@@ -16,7 +15,6 @@ class Payable
     public const MOLLIE = 'MOLLIE';
     public const MULTI_SAFE_PAY = 'MULTI_SAFE_PAY';
     public const STRIPE = 'STRIPE';
-    public const ADYEN = 'ADYEN';
     public const BUCKAROO = 'BUCKAROO';
 
     public function getProvider(PaymentType $paymentType): Provider
@@ -32,11 +30,6 @@ class Payable
 
             case self::STRIPE:
                 return new Stripe;
-                break;
-
-
-            case self::ADYEN:
-                return new Adyen;
                 break;
 
             case self::BUCKAROO:
