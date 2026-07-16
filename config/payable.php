@@ -88,4 +88,24 @@ return [
         'website_key' => env('BUCKAROO_WEBSITE_KEY'),
         'secret' => env('BUCKAROO_SECRET'),
     ],
+
+    /**
+     * Worldline Direct needs several credentials rather than a single key, so
+     * they are configured here. A multi-tenant consumer (a different account
+     * per domain) can override these at runtime the same way it overrides
+     * mollie.key, since the provider reads them fresh on every call.
+     *
+     * api_endpoint is the sandbox host by default; point it at the production
+     * host on go-live. webhook_key_id / webhook_secret are the Webhooks API key
+     * from the back office, used to verify the signature on incoming events.
+     */
+    'worldline' => [
+        'merchant_id' => env('WORLDLINE_MERCHANT_ID'),
+        'api_key_id' => env('WORLDLINE_API_KEY_ID'),
+        'api_secret' => env('WORLDLINE_API_SECRET'),
+        'api_endpoint' => env('WORLDLINE_API_ENDPOINT', 'https://payment.preprod.direct.worldline-solutions.com'),
+        'integrator' => env('WORLDLINE_INTEGRATOR', 'Marshmallow-Payable'),
+        'webhook_key_id' => env('WORLDLINE_WEBHOOK_KEY_ID'),
+        'webhook_secret' => env('WORLDLINE_WEBHOOK_SECRET'),
+    ],
 ];

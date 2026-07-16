@@ -8,6 +8,7 @@ use Marshmallow\Payable\Providers\Stripe;
 use Marshmallow\Payable\Models\PaymentType;
 use Marshmallow\Payable\Providers\Buckaroo;
 use Marshmallow\Payable\Providers\Provider;
+use Marshmallow\Payable\Providers\Worldline;
 use Marshmallow\Payable\Providers\MultiSafePay;
 
 class Payable
@@ -16,6 +17,7 @@ class Payable
     public const MULTI_SAFE_PAY = 'MULTI_SAFE_PAY';
     public const STRIPE = 'STRIPE';
     public const BUCKAROO = 'BUCKAROO';
+    public const WORLDLINE = 'WORLDLINE';
 
     public function getProvider(PaymentType $paymentType): Provider
     {
@@ -34,6 +36,10 @@ class Payable
 
             case self::BUCKAROO:
                 return new Buckaroo;
+                break;
+
+            case self::WORLDLINE:
+                return new Worldline;
                 break;
         }
 

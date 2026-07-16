@@ -8,7 +8,7 @@
 
 This package will make it possible to accept payments on all our laravel resources. This was orignaly build for our e-commerce package but can be used on anything.
 
-It ships integrations for **Mollie**, **MultiSafepay**, **Stripe** and **Buckaroo**, a set of payment models, payment status events, and a callback/webhook handler.
+It ships integrations for **Mollie**, **MultiSafepay**, **Stripe**, **Buckaroo** and **Worldline Direct**, a set of payment models, payment status events, and a callback/webhook handler.
 
 The package is admin-panel agnostic: it ships no Nova or Filament resources. Build the resources you need in the consuming project, against the models in `Marshmallow\Payable\Models` (or your own subclasses of them, registered via `payable.models.*`).
 
@@ -62,6 +62,7 @@ After publishing you can tweak `config/payable.php`. The most relevant keys:
 | `stripe.*` | env-driven | Stripe `key`, `secret`, `webhook` secret and the subscribed Stripe event types. |
 | `multisafepay.key` | `env('MULTI_SAFE_PAY_KEY')` | MultiSafepay API key. |
 | `buckaroo.*` | env-driven | Buckaroo `website_key` and `secret`. |
+| `worldline.*` | env-driven | Worldline Direct `merchant_id`, `api_key_id`, `api_secret`, `api_endpoint`, and the `webhook_key_id` / `webhook_secret` used to verify webhook signatures. Point `api_endpoint` at the production host on go-live. |
 
 ### Environment variables
 

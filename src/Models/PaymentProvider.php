@@ -18,6 +18,8 @@ class PaymentProvider extends Model
 
     public const PROVIDER_MULTI_SAFE_PAY = 'PROVIDER_MULTI_SAFE_PAY';
 
+    public const PROVIDER_WORLDLINE = 'WORLDLINE';
+
     protected $guarded = [];
 
     public function scopeType(Builder $builder, string $type)

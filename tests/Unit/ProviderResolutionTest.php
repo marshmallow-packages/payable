@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Marshmallow\Payable\Tests\TestCase;
 use Marshmallow\Payable\Models\PaymentType;
 use Marshmallow\Payable\Providers\Buckaroo;
+use Marshmallow\Payable\Providers\Worldline;
 use Marshmallow\Payable\Models\PaymentProvider;
 use Marshmallow\Payable\Providers\MultiSafePay;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -33,6 +34,7 @@ class ProviderResolutionTest extends TestCase
             'multisafepay' => [Payable::MULTI_SAFE_PAY, MultiSafePay::class],
             'stripe' => [Payable::STRIPE, Stripe::class],
             'buckaroo' => [Payable::BUCKAROO, Buckaroo::class],
+            'worldline' => [Payable::WORLDLINE, Worldline::class],
         ];
     }
 
