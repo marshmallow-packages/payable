@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.0.0] - TBD
 
 ### BREAKING CHANGES
+-   **BREAKING:** Restored the "paid in full" guard on `Payment::isPaid()`.
+    A commit in July 2025 ("restore hotfix branch from production vendor
+    folder") reverted a deliberate 2024 fix, dropping `Payment::paidInFull()`
+    and reducing `isPaid()` to a bare status check. A provider reporting `paid`
+    only says the transaction succeeded, not that it covered the full amount, so
+    a short payment silently counted as paid on this line. The v2 line kept the
+    guard; v3 and v4 lost it. `isPaid()` checks the settled amount again, and
+    `paidInFull()` is back — now returning false instead of fataling when the
+    payable is gone.
+
+    This is breaking for anything that came to rely on the reverted behaviour:
+    a payment marked `paid` whose `paid_amount` does not cover its payable no
+    longer fires `PaymentStatusPaid` and no longer routes to the paid page.
 -   **BREAKING:** Removed the Adyen remnants. `Payable::ADYEN`,
     `Payable::getProvider()`'s Adyen branch and
     `PaymentCallbackController::adyen()` all referred to

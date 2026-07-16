@@ -141,7 +141,25 @@ class Payment extends Model
 
     public function isPaid()
     {
-        return $this->status === self::STATUS_PAID;
+        return $this->status === self::STATUS_PAID && $this->paidInFull();
+    }
+
+    /**
+     * Whether the amount settled covers the payable.
+     *
+     * A provider reporting "paid" only says the transaction succeeded, not
+     * that it covered the full amount, so isPaid() asks this as well before
+     * a payment counts as paid.
+     */
+    public function paidInFull(): bool
+    {
+        $payable = $this->payable;
+
+        if (!$payable) {
+            return false;
+        }
+
+        return $payable->getTotalAmount() == $this->paid_amount;
     }
 
     public function isCompleted()
