@@ -3,6 +3,7 @@
 namespace Marshmallow\Payable\Tests\Unit;
 
 use Exception;
+use ReflectionClass;
 use Marshmallow\Payable\Payable;
 use Marshmallow\Payable\Providers\Mollie;
 use Marshmallow\Payable\Providers\Stripe;
@@ -25,11 +26,6 @@ class ProviderResolutionTest extends TestCase
         $this->assertInstanceOf($expected, (new Payable)->getProvider($paymentType));
     }
 
-    /**
-     * Payable::ADYEN is deliberately absent: it resolves to a provider class
-     * that does not exist and fatals. Tracked in #99; add it back here once
-     * that is settled.
-     */
     public static function supportedProviders(): array
     {
         return [
@@ -41,14 +37,44 @@ class ProviderResolutionTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_a_provider_type_it_does_not_implement(): void
+    #[DataProvider('unimplementedProviderTypes')]
+    public function it_rejects_a_provider_type_it_does_not_implement(string $type): void
     {
-        $paymentType = $this->paymentTypeForProviderType('SOME_UNRELEASED_PSP');
+        $paymentType = $this->paymentTypeForProviderType($type);
 
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('This provider is not implemented yet');
 
         (new Payable)->getProvider($paymentType);
+    }
+
+    /**
+     * ADYEN is here because it used to be advertised as supported while
+     * resolving to a provider class that never existed, so it fataled with
+     * "Class not found" instead of being rejected.
+     */
+    public static function unimplementedProviderTypes(): array
+    {
+        return [
+            'never released' => ['SOME_UNRELEASED_PSP'],
+            'adyen' => ['ADYEN'],
+        ];
+    }
+
+    #[Test]
+    public function it_only_advertises_provider_types_it_can_resolve(): void
+    {
+        $advertised = array_values((new ReflectionClass(Payable::class))->getConstants());
+        $resolvable = array_column(self::supportedProviders(), 0);
+
+        sort($advertised);
+        sort($resolvable);
+
+        $this->assertSame(
+            $resolvable,
+            $advertised,
+            'Every constant Payable declares must resolve to a provider.'
+        );
     }
 
     protected function paymentTypeForProviderType(string $type): PaymentType
