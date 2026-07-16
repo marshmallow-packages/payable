@@ -16,7 +16,7 @@ use OnlinePayments\Sdk\Domain\RefundRequest;
 use OnlinePayments\Sdk\Webhooks\WebhooksHelper;
 use Marshmallow\Payable\Resources\PaymentRefund;
 use OnlinePayments\Sdk\CommunicatorConfiguration;
-use OnlinePayments\Sdk\Authentication\DefaultAuthenticator;
+use OnlinePayments\Sdk\Authentication\V1HmacAuthenticator;
 use OnlinePayments\Sdk\Webhooks\InMemorySecretKeyStore;
 use Marshmallow\Payable\Http\Responses\PaymentStatusResponse;
 use OnlinePayments\Sdk\Domain\CreateHostedCheckoutRequest;
@@ -46,7 +46,7 @@ class Worldline extends Provider implements PaymentProviderContract
 
         $communicator = new Communicator(
             $configuration,
-            new DefaultAuthenticator($configuration),
+            new V1HmacAuthenticator($configuration),
         );
 
         return new Client($communicator);
