@@ -3,7 +3,10 @@
 namespace Marshmallow\Payable\Tests\Unit;
 
 use Exception;
+use ReflectionMethod;
+use OnlinePayments\Sdk\Client;
 use Illuminate\Http\Request;
+use OnlinePayments\Sdk\Merchant\MerchantClient;
 use PHPUnit\Framework\Attributes\Test;
 use Marshmallow\Payable\Tests\TestCase;
 use Marshmallow\Payable\Models\Payment;
@@ -21,6 +24,37 @@ class WorldlineTest extends TestCase
 
         $app['config']->set('payable.worldline.webhook_key_id', 'test-key-id');
         $app['config']->set('payable.worldline.webhook_secret', 'test-secret');
+        $app['config']->set('payable.worldline.merchant_id', 'test-merchant');
+        $app['config']->set('payable.worldline.api_key_id', 'test-api-key');
+        $app['config']->set('payable.worldline.api_secret', 'test-api-secret');
+        $app['config']->set('payable.worldline.api_endpoint', 'https://payment.preprod.direct.worldline-solutions.com');
+    }
+
+    /**
+     * Builds the SDK client from config, without touching the network. This
+     * would have caught the provider importing an authenticator class that
+     * does not exist: nothing else in the suite constructs the client.
+     */
+    #[Test]
+    public function it_builds_an_sdk_client_from_config(): void
+    {
+        $provider = new Worldline;
+
+        $method = new ReflectionMethod($provider, 'getClient');
+        $method->setAccessible(true);
+
+        $this->assertInstanceOf(Client::class, $method->invoke($provider));
+    }
+
+    #[Test]
+    public function it_builds_a_merchant_client_for_the_configured_merchant(): void
+    {
+        $provider = new Worldline;
+
+        $method = new ReflectionMethod($provider, 'merchantClient');
+        $method->setAccessible(true);
+
+        $this->assertInstanceOf(MerchantClient::class, $method->invoke($provider));
     }
 
     #[Test]
