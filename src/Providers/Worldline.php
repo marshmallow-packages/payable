@@ -5,6 +5,7 @@ namespace Marshmallow\Payable\Providers;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use OnlinePayments\Sdk\Client;
 use OnlinePayments\Sdk\Communicator;
@@ -14,6 +15,7 @@ use OnlinePayments\Sdk\Domain\AmountOfMoney;
 use OnlinePayments\Sdk\Domain\OrderReferences;
 use OnlinePayments\Sdk\Domain\RefundRequest;
 use OnlinePayments\Sdk\Webhooks\WebhooksHelper;
+use Marshmallow\Payable\Models\PaymentProvider;
 use Marshmallow\Payable\Resources\PaymentRefund;
 use OnlinePayments\Sdk\CommunicatorConfiguration;
 use OnlinePayments\Sdk\Authentication\V1HmacAuthenticator;
@@ -88,6 +90,25 @@ class Worldline extends Provider implements PaymentProviderContract
         return $this->merchantClient()->hostedCheckout()->createHostedCheckout($request);
     }
 
+    /**
+     * The payable decides the reference (via getPayableIdentifier) so it can
+     * expose the number its back office reconciles on. Deliberately not routed
+     * through Provider::getPayableIdentifier(): that falls back to the payable
+     * description ("Order #1234"), which is neither unique nor charset-safe.
+     */
+    protected function merchantReference(): string
+    {
+        if (method_exists($this->payableModel, 'getPayableIdentifier')) {
+            $identifier = $this->payableModel->getPayableIdentifier();
+
+            if (filled($identifier)) {
+                return (string) $identifier;
+            }
+        }
+
+        return (string) $this->payment->id;
+    }
+
     public function getPaymentId()
     {
         return $this->provider_payment_object->getHostedCheckoutId();
@@ -112,8 +133,17 @@ class Worldline extends Provider implements PaymentProviderContract
      * Verify the webhook signature and return the payment the event refers to.
      *
      * Called by the dedicated Worldline webhook controller, before the payment
-     * is known: Worldline signs the raw body and posts to a single endpoint, so
-     * the payment is resolved from the event's merchant reference.
+     * is known: Worldline signs the raw body and posts to a single endpoint.
+     *
+     * Resolution is tiered because the merchant reference now carries the
+     * payable's order number instead of our payment id:
+     * 1. The event's payment id is "{hostedCheckoutId}_{n}" and our
+     *    provider_id stores the hosted checkout id — the primary lookup,
+     *    which also covers payments created before this change.
+     * 2. Legacy references that still hold a payment id.
+     * 3. The payable whose identifier matches the reference, when that leaves
+     *    exactly one open Worldline payment (guards against Worldline's
+     *    documented payment-id format instability).
      */
     public function resolvePaymentFromWebhook(Request $request): ?Payment
     {
@@ -131,6 +161,17 @@ class Worldline extends Provider implements PaymentProviderContract
             return null;
         }
 
+        $hostedCheckoutId = Str::before((string) $worldlinePayment->getId(), '_');
+        if (filled($hostedCheckoutId)) {
+            $payment = $this->worldlinePaymentQuery()
+                ->where('provider_id', $hostedCheckoutId)
+                ->first();
+
+            if ($payment) {
+                return $payment;
+            }
+        }
+
         $merchantReference = $worldlinePayment
             ->getPaymentOutput()
             ?->getReferences()
@@ -140,7 +181,46 @@ class Worldline extends Provider implements PaymentProviderContract
             return null;
         }
 
-        return config('payable.models.payment')::find($merchantReference);
+        if ($payment = config('payable.models.payment')::find($merchantReference)) {
+            return $payment;
+        }
+
+        return $this->resolveByPayableIdentifier($merchantReference);
+    }
+
+    /**
+     * Match the merchant reference against the payable identifiers of open
+     * Worldline payments. Only trusted when it resolves to exactly one
+     * payment: the reference is a reconciliation aid, not a unique key.
+     */
+    protected function resolveByPayableIdentifier(string $merchantReference): ?Payment
+    {
+        $candidates = $this->worldlinePaymentQuery()
+            ->where('status', Payment::STATUS_OPEN)
+            ->latest()
+            ->take(50)
+            ->get()
+            ->filter(function ($payment) use ($merchantReference) {
+                $payable = $payment->payable;
+
+                return $payable
+                    && method_exists($payable, 'getPayableIdentifier')
+                    && (string) $payable->getPayableIdentifier() === $merchantReference;
+            });
+
+        return 1 === $candidates->count() ? $candidates->first() : null;
+    }
+
+    /**
+     * Constrained to Worldline payments so a provider_id collision with
+     * another provider's payment can never misroute a webhook.
+     */
+    protected function worldlinePaymentQuery()
+    {
+        return config('payable.models.payment')::query()
+            ->whereHas('provider', function ($query): void {
+                $query->where('type', PaymentProvider::PROVIDER_WORLDLINE);
+            });
     }
 
     /**
