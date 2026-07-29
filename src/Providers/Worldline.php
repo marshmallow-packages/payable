@@ -63,17 +63,25 @@ class Worldline extends Provider implements PaymentProviderContract
 
     public function createPayment($api_key = null)
     {
+        return $this->merchantClient()->hostedCheckout()->createHostedCheckout(
+            $this->buildHostedCheckoutRequest()
+        );
+    }
+
+    /**
+     * Building the request is separate from sending it so tests can assert
+     * what is actually sent to Worldline — most importantly that the merchant
+     * reference carries the payable identifier, which back offices reconcile
+     * prepayments on.
+     */
+    public function buildHostedCheckoutRequest(): CreateHostedCheckoutRequest
+    {
         $amountOfMoney = new AmountOfMoney;
         $amountOfMoney->setAmount($this->getPayableAmount());
         $amountOfMoney->setCurrencyCode($this->getCurrencyIso4217Code());
 
-        /**
-         * The merchant reference is our own payment id. The single-endpoint
-         * webhook has no route parameter to resolve the payment from, so it
-         * looks the payment up by this reference.
-         */
         $references = new OrderReferences;
-        $references->setMerchantReference($this->payment->id);
+        $references->setMerchantReference($this->merchantReference());
 
         $order = new Order;
         $order->setAmountOfMoney($amountOfMoney);
@@ -87,7 +95,7 @@ class Worldline extends Provider implements PaymentProviderContract
         $request->setOrder($order);
         $request->setHostedCheckoutSpecificInput($hostedCheckoutInput);
 
-        return $this->merchantClient()->hostedCheckout()->createHostedCheckout($request);
+        return $request;
     }
 
     /**
