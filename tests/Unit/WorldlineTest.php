@@ -113,6 +113,32 @@ class WorldlineTest extends TestCase
         $this->assertSame('3000123', $this->merchantReferenceFor($cart));
     }
 
+    /**
+     * Covers the actual hosted checkout request, not just the helper: the
+     * initial release shipped a merchantReference() helper that createPayment
+     * never called, which only an assertion on the built request catches.
+     */
+    #[Test]
+    public function it_sends_the_payable_identifier_as_merchant_reference_to_worldline(): void
+    {
+        $cart = TestOrderCart::create(['total_amount' => 1000, 'reference' => '3000123']);
+        $payment = $this->createPaymentRecord();
+
+        $provider = new Worldline;
+
+        $payableProperty = new ReflectionProperty($provider, 'payableModel');
+        $payableProperty->setAccessible(true);
+        $payableProperty->setValue($provider, $cart);
+
+        $paymentProperty = new ReflectionProperty($provider, 'payment');
+        $paymentProperty->setAccessible(true);
+        $paymentProperty->setValue($provider, $payment);
+
+        $request = $provider->buildHostedCheckoutRequest();
+
+        $this->assertSame('3000123', $request->getOrder()->getReferences()->getMerchantReference());
+    }
+
     #[Test]
     public function it_falls_back_to_the_payment_id_when_the_payable_has_no_identifier(): void
     {
