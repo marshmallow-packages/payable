@@ -147,7 +147,7 @@ class Mollie extends Provider implements PaymentProviderContract
                 $vat_amount = ($item->discount_vat_amount * $item->quantity);
             }
 
-            $payload['lines'][] = [
+            $line_payload = [
                 'type' => $type, //physical|discount|digital|shipping_fee|store_credit|gift_card|surcharge
                 'description' => $item->description,
                 'quantity' => $item->quantity,
@@ -177,6 +177,16 @@ class Mollie extends Provider implements PaymentProviderContract
                     ),
                 ],
             ];
+
+            // Line item models may correct their own payload before it is sent.
+            // App\Models\ShoppingCartItem uses this to recalculate vatAmount from
+            // the line total, because Mollie derives VAT that way and rejects the
+            // per-unit-rounded-times-quantity value with a 422.
+            if (method_exists($item, 'parsePaymentItemPayload')) {
+                $line_payload = $item->parsePaymentItemPayload($line_payload);
+            }
+
+            $payload['lines'][] = $line_payload;
         });
 
         return $api->payments->create($payload);
