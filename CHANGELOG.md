@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+-   **Mollie:** restored the `parsePaymentItemPayload()` hook call in
+    `Mollie::createOrder()`. The same July 2025 "restore hotfix branch from
+    production vendor folder" commit that reverted the paid-in-full guard also
+    dropped this call, introduced in August 2024. Line items are built with
+    `vatAmount = discount_vat_amount * quantity`, which rounds per unit and
+    then multiplies; Mollie derives VAT from the line total and rejects the
+    difference with a 422 `The 'vatAmount' field is off`. Item models that
+    define `parsePaymentItemPayload()` can now correct their own line payload
+    again, as originally intended.
+
 ## [3.0.0] - TBD
 
 ### BREAKING CHANGES
