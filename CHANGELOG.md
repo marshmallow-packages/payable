@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+-   Restored the null guard on `payable.actions.before_redirect_to_confirmation_page`
+    in `Provider::handleReturnNotification()`. The config key has no default in
+    `config/payable.php`, so apps that never set it were calling
+    `class_exists(null)` on every payment return - deprecated on PHP 8.1+ and a
+    TypeError on PHP 9.
+-   Restored the User-Agent fallback in the MultiSafePay provider.
+    `request()->header('User-Agent')` is null when there is no request header,
+    for example a payment started from a queued job or a console command.
+
+Both guards were dropped by bc92e51 ("restore hotfix branch from production
+vendor folder", July 2025), the same commit that reverted the paid-in-full
+guard on `Payment::isPaid()` and the `parsePaymentItemPayload()` hook call.
+
+## [4.1.2] - 2026-08-31
+
+### Fixed
+
 -   **Mollie:** restored the `parsePaymentItemPayload()` hook call in
     `Mollie::createOrder()`. The same July 2025 "restore hotfix branch from
     production vendor folder" commit that reverted the paid-in-full guard also
