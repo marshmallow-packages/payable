@@ -121,8 +121,13 @@ class Provider
             $route_name = config('payable.routes.payment_unknown');
         }
 
-        if (class_exists(config('payable.actions.before_redirect_to_confirmation_page'))) {
-            $payment = config('payable.actions.before_redirect_to_confirmation_page')::handle($payment);
+        // The config key has no default in config/payable.php, so this is null
+        // in every app that does not set it - and class_exists(null) is
+        // deprecated on PHP 8.1+ and a TypeError on PHP 9. The guard was
+        // dropped by bc92e51 and this ran on every single payment return.
+        $before_redirect_action = config('payable.actions.before_redirect_to_confirmation_page');
+        if ($before_redirect_action && class_exists($before_redirect_action)) {
+            $payment = $before_redirect_action::handle($payment);
         }
 
         return redirect()->route(
