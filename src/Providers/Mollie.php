@@ -338,6 +338,22 @@ class Mollie extends Provider implements PaymentProviderContract
         }
     }
 
+    /**
+     * Fetch and store a legacy order without interpreting it, for backfilling
+     * records before the Orders API is retired. Returns false when the payment
+     * is not a legacy order or already has a payload.
+     */
+    public function captureLegacyOrder(Payment $payment, $api_key = null): bool
+    {
+        if (! $this->isOrder($payment->provider_id) || filled($payment->result_payload)) {
+            return false;
+        }
+
+        $this->captureLegacyOrderPayload($payment, $this->fetchLegacyOrder($payment, $api_key));
+
+        return true;
+    }
+
     public function getPaymentStatus(Payment $payment)
     {
         if ($this->isOrder($payment->provider_id)) {
@@ -359,6 +375,8 @@ class Mollie extends Provider implements PaymentProviderContract
     {
         $order = $this->fetchLegacyOrder($payment, $api_key);
 
+        $this->captureLegacyOrderPayload($payment, $order);
+
         $payments = collect($order->_embedded->payments ?? []);
 
         // An order can carry several attempts. A successful one is the truth
@@ -378,6 +396,31 @@ class Mollie extends Provider implements PaymentProviderContract
 
         // No attempt was ever created; the order's own status is all there is.
         return $order;
+    }
+
+    /**
+     * Keep a copy of the order while the Orders API still answers.
+     *
+     * The tr_ payment id behind a legacy order exists nowhere in our own data,
+     * so the day Mollie does retire the endpoint it becomes unrecoverable.
+     * Storing the whole response - status, amount, method and the embedded
+     * payments - means the record survives the API.
+     *
+     * Only ever fills an empty column, so an existing payload is never
+     * overwritten, and a storage failure must not break the status read the
+     * webhook actually came for.
+     */
+    protected function captureLegacyOrderPayload(Payment $payment, object $order): void
+    {
+        if (filled($payment->result_payload)) {
+            return;
+        }
+
+        try {
+            $this->storeResultPayload($payment, json_encode($order, JSON_UNESCAPED_SLASHES));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     protected function fetchLegacyOrder(Payment $payment, $api_key = null): object
