@@ -6,6 +6,7 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Marshmallow\Payable\Models\Payment;
 use Mollie\Laravel\Facades\Mollie as MollieApi;
 use Marshmallow\Payable\Resources\PaymentRefund;
@@ -24,9 +25,12 @@ use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
  *
  * See https://docs.mollie.com/docs/migrating-from-orders-to-payments.
  *
- * Backwards compatibility note: Mollie order ids (ord_...) created before this
- * upgrade can no longer be fetched, refunded or shipped — the Orders API no
- * longer exists. Those operations now throw a clear exception.
+ * Backwards compatibility note: the v3 SDK dropped its Orders endpoints, but
+ * the Orders API itself is still served, so a legacy order id (ord_...) can
+ * still be READ over plain HTTP - verified against a live order. Status reads
+ * therefore keep working for payments created before the migration. Writing
+ * operations (refund, shipment) are not implemented for legacy orders and
+ * still throw.
  */
 class Mollie extends Provider implements PaymentProviderContract
 {
@@ -240,14 +244,15 @@ class Mollie extends Provider implements PaymentProviderContract
     }
 
     /**
-     * The Orders API has been removed by Mollie. Any operation on a legacy
-     * order id can no longer be performed against the API.
+     * Guards the operations that WRITE to a legacy order - refunds and
+     * shipments - which this package does not implement against the Orders
+     * API. Reading a legacy order still works, see getPaymentStatus().
      */
     protected function guardAgainstLegacyOrder(Payment $payment): void
     {
         if ($this->isOrder($payment->provider_id)) {
             throw new Exception(
-                "Mollie order {$payment->provider_id} can no longer be processed: the Mollie Orders API has been removed. See https://docs.mollie.com/docs/migrating-from-orders-to-payments."
+                "Mollie order {$payment->provider_id} predates the Payments API migration and cannot be refunded or shipped through this package; handle it in the Mollie dashboard. See https://docs.mollie.com/docs/migrating-from-orders-to-payments."
             );
         }
     }
@@ -333,11 +338,113 @@ class Mollie extends Provider implements PaymentProviderContract
         }
     }
 
+    /**
+     * Fetch and store a legacy order without interpreting it, for backfilling
+     * records before the Orders API is retired. Returns false when the payment
+     * is not a legacy order or already has a payload.
+     */
+    public function captureLegacyOrder(Payment $payment, $api_key = null): bool
+    {
+        if (! $this->isOrder($payment->provider_id) || filled($payment->result_payload)) {
+            return false;
+        }
+
+        $this->captureLegacyOrderPayload($payment, $this->fetchLegacyOrder($payment, $api_key));
+
+        return true;
+    }
+
     public function getPaymentStatus(Payment $payment)
     {
-        $this->guardAgainstLegacyOrder($payment);
+        if ($this->isOrder($payment->provider_id)) {
+            return $this->getLegacyOrderPaymentStatus($payment);
+        }
 
         return $this->getClient()->payments->get($payment->provider_id);
+    }
+
+    /**
+     * Read a pre-migration order (ord_...) and return the payment behind it.
+     *
+     * The v3 SDK removed its Orders endpoints, but the API still serves them,
+     * so one authenticated GET recovers what the webhook needs. Nothing is
+     * written here: a failure throws, which leaves the webhook unacknowledged
+     * so Mollie retries, rather than recording a status we are not sure of.
+     */
+    protected function getLegacyOrderPaymentStatus(Payment $payment, $api_key = null): object
+    {
+        $order = $this->fetchLegacyOrder($payment, $api_key);
+
+        $this->captureLegacyOrderPayload($payment, $order);
+
+        $payments = collect($order->_embedded->payments ?? []);
+
+        // An order can carry several attempts. A successful one is the truth
+        // about the order regardless of how many failures came before it, so
+        // never let an earlier attempt overwrite it.
+        $settled = $payments->first(
+            fn ($attempt) => in_array($attempt->status ?? null, ['paid', 'authorized'], true)
+        );
+
+        if ($settled) {
+            return $settled;
+        }
+
+        if ($payments->isNotEmpty()) {
+            return $payments->sortBy(fn ($attempt) => $attempt->createdAt ?? '')->last();
+        }
+
+        // No attempt was ever created; the order's own status is all there is.
+        return $order;
+    }
+
+    /**
+     * Keep a copy of the order while the Orders API still answers.
+     *
+     * The tr_ payment id behind a legacy order exists nowhere in our own data,
+     * so the day Mollie does retire the endpoint it becomes unrecoverable.
+     * Storing the whole response - status, amount, method and the embedded
+     * payments - means the record survives the API.
+     *
+     * Only ever fills an empty column, so an existing payload is never
+     * overwritten, and a storage failure must not break the status read the
+     * webhook actually came for.
+     */
+    protected function captureLegacyOrderPayload(Payment $payment, object $order): void
+    {
+        if (filled($payment->result_payload)) {
+            return;
+        }
+
+        try {
+            $this->storeResultPayload($payment, json_encode($order, JSON_UNESCAPED_SLASHES));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    protected function fetchLegacyOrder(Payment $payment, $api_key = null): object
+    {
+        $key = $api_key ?: config('mollie.key');
+
+        if (blank($key)) {
+            throw new Exception(
+                "Cannot read Mollie order {$payment->provider_id}: no API key configured for this domain."
+            );
+        }
+
+        $response = Http::withToken($key)
+            ->timeout(15)
+            ->acceptJson()
+            ->get("https://api.mollie.com/v2/orders/{$payment->provider_id}", ['embed' => 'payments']);
+
+        if (! $response->successful()) {
+            throw new Exception(
+                "Could not read Mollie order {$payment->provider_id}: HTTP {$response->status()}."
+            );
+        }
+
+        return $response->object();
     }
 
     public function handleResponse(Payment $payment): PaymentStatusResponse
