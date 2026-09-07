@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+-   **Mollie:** the timestamp getters (`getExpiresAt()`, `getCanceledAt()`,
+    `getFailedAt()`, `getPaidAt()`) now read the field null-safely and return
+    null when Mollie did not send it. Mollie drops `expiresAt` once a payment
+    has expired (`expiredAt` replaces it, and is now preferred), and for a
+    legacy `ord_` order the status is a raw stdClass, so every webhook for an
+    expired legacy order threw `Undefined property: stdClass::$expiresAt`
+    and was retried by Mollie indefinitely.
 -   Restored the null guard on `payable.actions.before_redirect_to_confirmation_page`
     in `Provider::handleReturnNotification()`. The config key has no default in
     `config/payable.php`, so apps that never set it were calling
