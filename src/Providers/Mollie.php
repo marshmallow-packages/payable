@@ -467,30 +467,53 @@ class Mollie extends Provider implements PaymentProviderContract
 
     public function getCanceledAt(Payment $payment): ?Carbon
     {
-        $info = $this->getPaymentInfoFromTheProvider($payment);
-
-        return Carbon::parse($info->canceledAt);
+        return $this->getTimestamp($payment, 'canceledAt');
     }
 
+    /**
+     * Mollie only sends `expiresAt` while a payment can still expire. Once it
+     * has expired the field is dropped and `expiredAt` carries the moment it
+     * did - and Provider only asks for this timestamp when the payment IS
+     * expired, so `expiresAt` alone was never going to be there.
+     */
     public function getExpiresAt(Payment $payment): ?Carbon
     {
-        $info = $this->getPaymentInfoFromTheProvider($payment);
-
-        return Carbon::parse($info->expiresAt);
+        return $this->getTimestamp($payment, 'expiredAt', 'expiresAt');
     }
 
     public function getFailedAt(Payment $payment): ?Carbon
     {
-        $info = $this->getPaymentInfoFromTheProvider($payment);
-
-        return Carbon::parse($info->failedAt);
+        return $this->getTimestamp($payment, 'failedAt');
     }
 
     public function getPaidAt(Payment $payment): ?Carbon
     {
+        return $this->getTimestamp($payment, 'paidAt');
+    }
+
+    /**
+     * Parse the first of the given fields the provider actually returned.
+     *
+     * A tr_ payment comes back as an SDK resource with every property
+     * declared, so a timestamp Mollie did not send is a quiet null. A legacy
+     * ord_ order comes back as the raw stdClass of the Orders API, where the
+     * same read is an "Undefined property" warning - which Laravel throws, so
+     * the webhook 500s and Mollie retries forever. Reading through `??` covers
+     * both, and returning null beats Carbon::parse(null) inventing "now".
+     */
+    protected function getTimestamp(Payment $payment, string ...$fields): ?Carbon
+    {
         $info = $this->getPaymentInfoFromTheProvider($payment);
 
-        return Carbon::parse($info->paidAt);
+        foreach ($fields as $field) {
+            $value = $info->{$field} ?? null;
+
+            if (filled($value)) {
+                return Carbon::parse($value);
+            }
+        }
+
+        return null;
     }
 
     protected function getPaymentDetail(Payment $payment, string $column): ?string
