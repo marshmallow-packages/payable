@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+-   **Mollie:** the timestamp getters (`getExpiresAt()`, `getCanceledAt()`,
+    `getFailedAt()`, `getPaidAt()`) now read the field null-safely and return
+    null when Mollie did not send it. Mollie drops `expiresAt` once a payment
+    has expired (`expiredAt` replaces it, and is now preferred), and for a
+    legacy `ord_` order the status is a raw stdClass, so every webhook for an
+    expired legacy order threw `Undefined property: stdClass::$expiresAt`
+    and was retried by Mollie indefinitely. (Backport of the v4 fix.)
+
 ## [3.0.0] - TBD
 
 ### BREAKING CHANGES
