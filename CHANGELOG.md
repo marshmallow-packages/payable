@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+-   **Worldline:** a return visit more than three hours after the hosted
+    checkout was created no longer throws. Worldline keeps a hosted checkout
+    for three hours (`hostedCheckoutSpecificInput.sessionTimeout`); after
+    that the status endpoint answers 404, which the SDK raises as a
+    `ReferenceException`, so a consumer or link-preview crawler revisiting
+    the return URL got a 500. The provider now keeps the stored status, paid
+    amount, timestamps and consumer details (the webhook has delivered the
+    final status by then) and redirects to the matching confirmation page.
+    The hosted checkout is also read once per status update instead of
+    twice.
 -   **Mollie:** a 0% VAT line is now sent with `vatRate: "0.00"` instead of
     `"0"`. The SDK's payload factory reads fields with a truthiness check
     (`Factory::get()`), so the falsy `"0"` was silently dropped while the
