@@ -7,8 +7,11 @@ use ReflectionMethod;
 use ReflectionProperty;
 use OnlinePayments\Sdk\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
+use OnlinePayments\Sdk\ReferenceException;
+use OnlinePayments\Sdk\Domain\ErrorResponse;
 use OnlinePayments\Sdk\Merchant\MerchantClient;
 use PHPUnit\Framework\Attributes\Test;
 use Marshmallow\Payable\Tests\TestCase;
@@ -245,6 +248,110 @@ class WorldlineTest extends TestCase
         $this->expectException(SignatureValidationException::class);
 
         (new Worldline)->resolvePaymentFromWebhook($request);
+    }
+
+    /**
+     * Worldline keeps a hosted checkout for three hours. A consumer (or a
+     * link-preview crawler) revisiting the return URL after that got a 404
+     * from the status endpoint, which the SDK raised as a ReferenceException
+     * and the return page answered with a 500. By then the webhook has
+     * delivered the final status, so the stored status is what we keep.
+     */
+    #[Test]
+    public function it_keeps_the_stored_status_when_the_hosted_checkout_is_gone(): void
+    {
+        $payment = $this->createPaymentRecord([
+            'status' => Payment::STATUS_PAID,
+            'paid_amount' => 1000,
+        ]);
+
+        $response = $this->providerWithoutHostedCheckout()->handleResponse($payment);
+
+        $this->assertSame(Payment::STATUS_PAID, $response->getStatus());
+        $this->assertEquals(1000, $response->getPaidAmount());
+    }
+
+    #[Test]
+    public function it_treats_a_gone_hosted_checkout_without_a_stored_status_as_open(): void
+    {
+        $payment = $this->createPaymentRecord(['status' => null]);
+
+        $response = $this->providerWithoutHostedCheckout()->handleResponse($payment);
+
+        $this->assertSame(Payment::STATUS_OPEN, $response->getStatus());
+        $this->assertEquals(0, $response->getPaidAmount());
+    }
+
+    /**
+     * The status update also rewrites paid_at and the consumer details from
+     * the hosted checkout. Without it those must come from the payment
+     * itself, or a late return visit would blank them.
+     */
+    #[Test]
+    public function it_keeps_the_stored_payment_details_when_the_hosted_checkout_is_gone(): void
+    {
+        $paidAt = now()->subDay()->startOfSecond();
+
+        $payment = $this->createPaymentRecord([
+            'status' => Payment::STATUS_PAID,
+            'paid_at' => $paidAt,
+            'consumer_name' => 'J. Doe',
+            'consumer_account' => 'NL00BANK0123456789',
+            'consumer_bic' => 'BANKNL2A',
+            'payment_type_name' => 'ideal',
+        ]);
+
+        $provider = $this->providerWithoutHostedCheckout();
+
+        $this->assertTrue($paidAt->equalTo($provider->getPaidAt($payment)));
+        $this->assertSame('J. Doe', $provider->getConsumerName($payment));
+        $this->assertSame('NL00BANK0123456789', $provider->getConsumerAccount($payment));
+        $this->assertSame('BANKNL2A', $provider->getConsumerBic($payment));
+        $this->assertSame('ideal', $provider->getPaymentTypeName($payment));
+    }
+
+    #[Test]
+    public function it_redirects_a_late_return_visit_when_the_hosted_checkout_is_gone(): void
+    {
+        Route::get('/paid', fn () => 'paid')->name('payment.paid');
+
+        $payment = $this->createPaymentRecord([
+            'status' => Payment::STATUS_PAID,
+            'paid_amount' => 1000,
+            'paid_at' => now()->subDay(),
+            'consumer_name' => 'J. Doe',
+            'payment_type_name' => 'ideal',
+        ]);
+
+        $request = Request::create("/payment/return/{$payment->id}");
+
+        $response = $this->providerWithoutHostedCheckout()->handleReturn($payment, $request);
+
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertStringContainsString('/paid', $response->getTargetUrl());
+
+        $payment->refresh();
+
+        $this->assertSame(Payment::STATUS_PAID, $payment->status);
+        $this->assertSame(0, $payment->status_change_count);
+        $this->assertNotNull($payment->paid_at);
+        $this->assertSame('J. Doe', $payment->consumer_name);
+        $this->assertSame('ideal', $payment->payment_type_name);
+    }
+
+    /**
+     * Worldline answers 404 for a hosted checkout it no longer keeps; the SDK
+     * maps that to a ReferenceException.
+     */
+    protected function providerWithoutHostedCheckout(): Worldline
+    {
+        return new class extends Worldline
+        {
+            public function getPaymentStatus(Payment $payment)
+            {
+                throw new ReferenceException(404, new ErrorResponse);
+            }
+        };
     }
 
     protected function createPaymentRecord(array $attributes = []): Payment

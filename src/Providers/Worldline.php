@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use OnlinePayments\Sdk\Client;
 use OnlinePayments\Sdk\Communicator;
+use OnlinePayments\Sdk\ReferenceException;
 use Marshmallow\Payable\Models\Payment;
 use OnlinePayments\Sdk\Domain\Order;
 use OnlinePayments\Sdk\Domain\AmountOfMoney;
@@ -37,6 +38,10 @@ use Marshmallow\Payable\Providers\Contracts\PaymentProviderContract;
  */
 class Worldline extends Provider implements PaymentProviderContract
 {
+    protected $hostedCheckout;
+
+    protected bool $hostedCheckoutResolved = false;
+
     protected function getClient(): Client
     {
         $configuration = new CommunicatorConfiguration(
@@ -289,9 +294,53 @@ class Worldline extends Provider implements PaymentProviderContract
         return $this->merchantClient()->hostedCheckout()->getHostedCheckout($payment->provider_id);
     }
 
+    /**
+     * Worldline keeps a hosted checkout for three hours (the default
+     * hostedCheckoutSpecificInput.sessionTimeout). After that the status
+     * endpoint answers 404, which the SDK raises as a ReferenceException.
+     * A consumer, or a link-preview crawler, revisiting the return URL later
+     * is normal traffic rather than an error, so a gone checkout resolves to
+     * null and the callers fall back to what the payment already stores: by
+     * then the webhook has delivered the final status.
+     *
+     * Resolved once per provider instance. The status update reads the
+     * checkout for the status and again for the timestamps and consumer
+     * details, and the base class memo would build a fresh provider for
+     * the second read.
+     */
+    protected function hostedCheckoutFor(Payment $payment)
+    {
+        if ($this->hostedCheckoutResolved) {
+            return $this->hostedCheckout;
+        }
+
+        $this->hostedCheckoutResolved = true;
+
+        try {
+            $this->hostedCheckout = $this->getPaymentStatus($payment);
+        } catch (ReferenceException) {
+            $this->hostedCheckout = null;
+        }
+
+        return $this->hostedCheckout;
+    }
+
+    protected function getPaymentInfoFromTheProvider(Payment $payment)
+    {
+        return $this->hostedCheckoutFor($payment);
+    }
+
     public function handleResponse(Payment $payment): PaymentStatusResponse
     {
-        $hostedCheckout = $this->getPaymentStatus($payment);
+        $hostedCheckout = $this->hostedCheckoutFor($payment);
+
+        if (!$hostedCheckout) {
+            return new PaymentStatusResponse(
+                $payment->status ?: Payment::STATUS_OPEN,
+                (int) $payment->paid_amount,
+            );
+        }
+
         $createdPayment = $hostedCheckout->getCreatedPaymentOutput()?->getPayment();
 
         if (!$createdPayment) {
@@ -347,22 +396,27 @@ class Worldline extends Provider implements PaymentProviderContract
     {
         $info = $this->getPaymentInfoFromTheProvider($payment);
 
-        return $info->getCreatedPaymentOutput()?->getPayment();
+        return $info?->getCreatedPaymentOutput()?->getPayment();
     }
 
+    /**
+     * The timestamp and consumer getters fall back to the stored column so
+     * that a status update without the hosted checkout keeps what an earlier
+     * webhook or return already recorded instead of blanking it.
+     */
     public function getPaidAt(Payment $payment): ?Carbon
     {
-        return $this->statusChangedAt($payment);
+        return $this->statusChangedAt($payment) ?? $payment->paid_at;
     }
 
     public function getCanceledAt(Payment $payment): ?Carbon
     {
-        return $this->statusChangedAt($payment);
+        return $this->statusChangedAt($payment) ?? $payment->canceled_at;
     }
 
     public function getFailedAt(Payment $payment): ?Carbon
     {
-        return $this->statusChangedAt($payment);
+        return $this->statusChangedAt($payment) ?? $payment->failed_at;
     }
 
     /**
@@ -395,17 +449,17 @@ class Worldline extends Provider implements PaymentProviderContract
 
     public function getConsumerName(Payment $payment): ?string
     {
-        return $this->customerBankAccount($payment)?->getAccountHolderName();
+        return $this->customerBankAccount($payment)?->getAccountHolderName() ?? $payment->consumer_name;
     }
 
     public function getConsumerAccount(Payment $payment): ?string
     {
-        return $this->customerBankAccount($payment)?->getIban();
+        return $this->customerBankAccount($payment)?->getIban() ?? $payment->consumer_account;
     }
 
     public function getConsumerBic(Payment $payment): ?string
     {
-        return $this->customerBankAccount($payment)?->getBic();
+        return $this->customerBankAccount($payment)?->getBic() ?? $payment->consumer_bic;
     }
 
     public function getPaymentTypeName(Payment $payment): ?string
@@ -418,7 +472,7 @@ class Worldline extends Provider implements PaymentProviderContract
 
         return match ($productId) {
             809 => 'ideal',
-            null => null,
+            null => $payment->payment_type_name,
             default => (string) $productId,
         };
     }
