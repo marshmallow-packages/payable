@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [4.2.2] - 2026-09-14
+## [4.2.3] - 2026-09-14
 
 ### Fixed
 
@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     final status by then) and redirects to the matching confirmation page.
     The hosted checkout is also read once per status update instead of
     twice.
+
+## [4.2.2] - 2026-09-14
+
+### Fixed
+
 -   **Mollie:** a 0% VAT line is now sent with `vatRate: "0.00"` instead of
     `"0"`. The SDK's payload factory reads fields with a truthiness check
     (`Factory::get()`), so the falsy `"0"` was silently dropped while the
