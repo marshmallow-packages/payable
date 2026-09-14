@@ -173,7 +173,7 @@ class Mollie extends Provider implements PaymentProviderContract
                         $total_amount
                     ),
                 ],
-                'vatRate' => (string) $item->vatrate->rate,
+                'vatRate' => $this->formatVatRate($item->vatrate->rate),
                 'vatAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
                     'value' => $this->formatCentToDecimalString(
@@ -455,32 +455,69 @@ class Mollie extends Provider implements PaymentProviderContract
         return number_format($amount / 100, 2, '.', '');
     }
 
-    public function getCanceledAt(Payment $payment): ?Carbon
+    /**
+     * Mollie documents vatRate as a two-decimal string ("21.00"), and the exact
+     * shape matters more than it looks: a bare "0" (what a 0% rate casts to)
+     * is falsy, and the SDK's payload factory reads fields with a truthiness
+     * check (Factory::get(), `if ($value = Arr::get(...))`), so a 0% line was
+     * sent WITHOUT vatRate while its vatAmount of "0.00" survived - which
+     * Mollie rejects with "'vatRate' is missing, but 'vatAmount' is present".
+     * Every 0% line (intra-EU reverse charge, exempt goods) hit this.
+     */
+    public function formatVatRate($rate): string
     {
-        $info = $this->getPaymentInfoFromTheProvider($payment);
-
-        return Carbon::parse($info->canceledAt);
+        return number_format((float) $rate, 2, '.', '');
     }
 
+    public function getCanceledAt(Payment $payment): ?Carbon
+    {
+        return $this->getTimestamp($payment, 'canceledAt');
+    }
+
+    /**
+     * Mollie only sends `expiresAt` while a payment can still expire. Once it
+     * has expired the field is dropped and `expiredAt` carries the moment it
+     * did - and Provider only asks for this timestamp when the payment IS
+     * expired, so `expiresAt` alone was never going to be there.
+     */
     public function getExpiresAt(Payment $payment): ?Carbon
     {
-        $info = $this->getPaymentInfoFromTheProvider($payment);
-
-        return Carbon::parse($info->expiresAt);
+        return $this->getTimestamp($payment, 'expiredAt', 'expiresAt');
     }
 
     public function getFailedAt(Payment $payment): ?Carbon
     {
-        $info = $this->getPaymentInfoFromTheProvider($payment);
-
-        return Carbon::parse($info->failedAt);
+        return $this->getTimestamp($payment, 'failedAt');
     }
 
     public function getPaidAt(Payment $payment): ?Carbon
     {
+        return $this->getTimestamp($payment, 'paidAt');
+    }
+
+    /**
+     * Parse the first of the given fields the provider actually returned.
+     *
+     * A tr_ payment comes back as an SDK resource with every property
+     * declared, so a timestamp Mollie did not send is a quiet null. A legacy
+     * ord_ order comes back as the raw stdClass of the Orders API, where the
+     * same read is an "Undefined property" warning - which Laravel throws, so
+     * the webhook 500s and Mollie retries forever. Reading through `??` covers
+     * both, and returning null beats Carbon::parse(null) inventing "now".
+     */
+    protected function getTimestamp(Payment $payment, string ...$fields): ?Carbon
+    {
         $info = $this->getPaymentInfoFromTheProvider($payment);
 
-        return Carbon::parse($info->paidAt);
+        foreach ($fields as $field) {
+            $value = $info->{$field} ?? null;
+
+            if (filled($value)) {
+                return Carbon::parse($value);
+            }
+        }
+
+        return null;
     }
 
     protected function getPaymentDetail(Payment $payment, string $column): ?string

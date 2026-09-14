@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+-   **Mollie:** a 0% VAT line is now sent with `vatRate: "0.00"` instead of
+    `"0"`. The SDK's payload factory reads fields with a truthiness check
+    (`Factory::get()`), so the falsy `"0"` was silently dropped while the
+    line's `vatAmount` of `"0.00"` survived, and Mollie rejected every such
+    payment with a 422: "The 'vatRate' field is missing, but the 'vatAmount'
+    field is present". Any checkout with a 0% line (intra-EU reverse charge,
+    exempt goods) failed. Rates now always use Mollie's documented two-decimal
+    shape (`formatVatRate()`).
+-   **Mollie:** the timestamp getters (`getExpiresAt()`, `getCanceledAt()`,
+    `getFailedAt()`, `getPaidAt()`) now read the field null-safely and return
+    null when Mollie did not send it. Mollie drops `expiresAt` once a payment
+    has expired (`expiredAt` replaces it, and is now preferred), and for a
+    legacy `ord_` order the status is a raw stdClass, so every webhook for an
+    expired legacy order threw `Undefined property: stdClass::$expiresAt`
+    and was retried by Mollie indefinitely. (Backport of the v4 fix.)
+
 ## [3.0.0] - TBD
 
 ### BREAKING CHANGES
