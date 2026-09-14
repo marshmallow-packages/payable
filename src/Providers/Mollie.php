@@ -173,7 +173,7 @@ class Mollie extends Provider implements PaymentProviderContract
                         $total_amount
                     ),
                 ],
-                'vatRate' => (string) $item->vatrate->rate,
+                'vatRate' => $this->formatVatRate($item->vatrate->rate),
                 'vatAmount' => [
                     'currency' => $this->getCurrencyIso4217Code(),
                     'value' => $this->formatCentToDecimalString(
@@ -463,6 +463,20 @@ class Mollie extends Provider implements PaymentProviderContract
          * You must send the correct number of decimals, thus we enforce the use of strings
          */
         return number_format($amount / 100, 2, '.', '');
+    }
+
+    /**
+     * Mollie documents vatRate as a two-decimal string ("21.00"), and the exact
+     * shape matters more than it looks: a bare "0" (what a 0% rate casts to)
+     * is falsy, and the SDK's payload factory reads fields with a truthiness
+     * check (Factory::get(), `if ($value = Arr::get(...))`), so a 0% line was
+     * sent WITHOUT vatRate while its vatAmount of "0.00" survived - which
+     * Mollie rejects with "'vatRate' is missing, but 'vatAmount' is present".
+     * Every 0% line (intra-EU reverse charge, exempt goods) hit this.
+     */
+    public function formatVatRate($rate): string
+    {
+        return number_format((float) $rate, 2, '.', '');
     }
 
     public function getCanceledAt(Payment $payment): ?Carbon
