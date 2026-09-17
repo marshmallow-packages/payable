@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.3.1] - 2026-09-17
+
+### Fixed
+
+-   **Buckaroo:** the webhook handler started with a leftover `dd()`, so
+    every push dumped and died before the payment status was read. It also
+    compared a request field Buckaroo never sends (`id`) with the payment;
+    the push carries the transaction key (`Transaction.Key` for a JSON push,
+    `brq_transactions` for a form push), which is now what is verified when
+    present. Status 891 (cancelled by merchant) was listed under 890 and fell
+    through to "unknown status"; it now maps to canceled.
+
 ## [4.3.0] - 2026-09-16
 
 ### Added
