@@ -67,6 +67,20 @@ trait Payable
         return $this->morphMany(config('payable.models.payment'), 'payable');
     }
 
+    /**
+     * A frozen description of what a payment for this model covers. It is
+     * stored on the payment as `payable_snapshot` the moment the payment
+     * starts, so a webhook can prove what the settled amount bought even when
+     * the payable changed or vanished in the meantime. Override it to return
+     * the lines, amounts and parties the payment is for; null stores nothing.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPayableSnapshot(): ?array
+    {
+        return null;
+    }
+
     public abstract function getTotalAmount(): int;
     public abstract function getPayableDescription(): string;
     public abstract function getCustomerName(): ?string;

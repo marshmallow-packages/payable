@@ -38,16 +38,9 @@ class Provider
         $this->testPayment = $testPayment;
         $this->extraPaymentDataCallback = $extraPaymentDataCallback;
 
-        $this->payment = $payableModel->payments()->create([
-            'payment_provider_id' => $paymentType->payment_provider_id,
-            'payment_type_id' => $paymentType->id,
-            'simple_checkout' => $paymentType->simple_checkout,
-            'total_amount' => $payableModel->getTotalAmount(),
-            'remaining_amount' => $payableModel->getTotalAmount(),
-            'started' => now(),
-            'is_test' => $this->isTestPayment($testPayment),
-            'start_ip' => request()->ip(),
-        ]);
+        $this->payment = $payableModel->payments()->create(
+            $this->newPaymentAttributes($payableModel, $paymentType, $testPayment)
+        );
 
         $method = ($this->is_recurring) ? 'createRecurringPayment' : 'createPayment';
         $this->provider_payment_object = $this->{$method}($api_key);
@@ -85,20 +78,47 @@ class Provider
         $this->payableModel = $payableModel;
         $this->paymentType = $paymentType;
         $this->testPayment = $testPayment;
-        $method = ($this->is_recurring) ? 'createRecurringPayment' : 'createPayment';
+        $this->payment = $payableModel->payments()->create(
+            $this->newPaymentAttributes($payableModel, $paymentType, $testPayment)
+        );
 
-        $this->payment = $payableModel->payments()->create([
+        return $this->payment;
+    }
+
+    /**
+     * The attributes every new payment starts with. The payable's snapshot is
+     * frozen here, before the provider is contacted, so what the customer is
+     * about to pay for is on record from the very first moment.
+     *
+     * @return array<string, mixed>
+     */
+    protected function newPaymentAttributes(Model $payableModel, PaymentType $paymentType, $testPayment): array
+    {
+        return [
             'payment_provider_id' => $paymentType->payment_provider_id,
             'payment_type_id' => $paymentType->id,
             'simple_checkout' => $paymentType->simple_checkout,
             'total_amount' => $payableModel->getTotalAmount(),
             'remaining_amount' => $payableModel->getTotalAmount(),
+            'payable_snapshot' => $this->snapshotOf($payableModel),
             'started' => now(),
             'is_test' => $this->isTestPayment($testPayment),
             'start_ip' => request()->ip(),
-        ]);
+        ];
+    }
 
-        return $this->payment;
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function snapshotOf(Model $payableModel): ?array
+    {
+        if (! method_exists($payableModel, 'getPayableSnapshot')) {
+            return null;
+        }
+
+        $snapshot = $payableModel->getPayableSnapshot();
+
+        return is_array($snapshot) ? $snapshot : null;
     }
 
     public function handleReturn(Payment $payment, Request $request): RedirectResponse

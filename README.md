@@ -127,6 +127,29 @@ $order->startRecurringPayment($paymentType);
 
 The payments related to a model are available through the `payments()` morph relation.
 
+### Freeze what a payment covers
+
+A payable can describe what a payment for it covers by overriding `getPayableSnapshot()`. The array is stored on the payment as `payable_snapshot` the moment the payment starts, before the provider is contacted, so a webhook handler can prove what the settled amount bought even when the payable changed or was deleted in the meantime.
+
+```php
+public function getPayableSnapshot(): ?array
+{
+    return [
+        'order_id' => $this->id,
+        'total_amount' => $this->getTotalAmount(),
+        'lines' => $this->items->map->only(['description', 'quantity', 'unit_amount'])->all(),
+    ];
+}
+```
+
+```php
+Event::listen(PaymentStatusPaid::class, function (PaymentStatusPaid $event) {
+    $snapshot = $event->payment->payable_snapshot; // what was paid for, frozen at start
+});
+```
+
+Returning `null` (the default) stores nothing. The column is added by the package migrations; run `php artisan migrate` after upgrading to 4.3.
+
 ### Use order information
 
 First let the payable package know we want to sent order information to the payment provider.

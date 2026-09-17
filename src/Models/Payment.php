@@ -35,6 +35,7 @@ class Payment extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'payable_snapshot' => 'array',
         'started' => 'datetime',
         'status_changed_at' => 'datetime',
         'canceled_at' => 'datetime',
