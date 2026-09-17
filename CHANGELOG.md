@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-09-16
+
+### Added
+
+-   **Payable snapshot:** a payable can override `getPayableSnapshot(): ?array`
+    to describe what a payment for it covers (lines, amounts, parties). The
+    provider freezes it onto the new payment as `payable_snapshot` in
+    `preparePayment()` / `prepareCustomPayment()`, before the provider is
+    contacted, so a webhook can build the order from what was actually paid
+    for rather than from a payable that may have changed since. The `Payable`
+    trait ships a default returning `null`, which stores nothing; the column
+    (`payments.payable_snapshot`, json, nullable) is added by a new package
+    migration — run `php artisan migrate`.
+
 ## [4.2.3] - 2026-09-14
 
 ### Fixed
