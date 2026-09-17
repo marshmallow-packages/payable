@@ -247,14 +247,29 @@ class Buckaroo extends Provider implements PaymentProviderContract
 
     public function handleWebhookNotification(Payment $payment, Request $request): PaymentStatusResponse
     {
-        dd(__LINE__);
-        $paymentId = $request->input('id');
+        $transactionKey = $this->transactionKeyFromPush($request);
 
-        if ($paymentId != $payment->provider_id) {
+        if ($transactionKey !== null && $transactionKey !== (string) $payment->provider_id) {
             abort(403);
         }
 
         return $this->handleResponse($payment);
+    }
+
+    /**
+     * The transaction key a Buckaroo push carries: `Transaction.Key` for a
+     * JSON push, `brq_transactions` / `BRQ_TRANSACTIONS` for a form push.
+     * Null when the push carries none; the status is then read from the API
+     * for the payment the webhook route resolved, which is the authority
+     * either way.
+     */
+    protected function transactionKeyFromPush(Request $request): ?string
+    {
+        $key = $request->input('Transaction.Key')
+            ?? $request->input('brq_transactions')
+            ?? $request->input('BRQ_TRANSACTIONS');
+
+        return is_string($key) && $key !== '' ? $key : null;
     }
 
     public function convertStatus($status): string
@@ -273,7 +288,7 @@ class Buckaroo extends Provider implements PaymentProviderContract
                 break;
 
             case 890: // Cancelled By User (890): The transaction was cancelled by the customer.
-            case 890: // Cancelled By Merchant (891): The merchant cancelled the transaction.
+            case 891: // Cancelled By Merchant (891): The merchant cancelled the transaction.
                 return Payment::STATUS_CANCELED;
                 break;
 
