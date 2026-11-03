@@ -5,7 +5,9 @@ namespace Marshmallow\Payable\Providers;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use GuzzleHttp\Client as GuzzleClient;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Client\NetworkExceptionInterface;
 use MultiSafepay\ValueObject\Money;
 use MultiSafepay\ValueObject\UnitPrice;
 use Marshmallow\Payable\Models\Payment;
@@ -33,12 +35,16 @@ class MultiSafePay extends Provider implements PaymentProviderContract
     }
 
     /**
-     * The PSR-18 client the SDK talks to MultiSafepay with. Null lets the SDK
-     * discover one itself.
+     * The PSR-18 client the SDK talks to MultiSafepay with. Left to discovery
+     * the SDK got a client that waited out PHP's default_socket_timeout (60s)
+     * whenever the MultiSafepay API stalled, holding the webhook that long.
      */
     protected function httpClient(): ?ClientInterface
     {
-        return null;
+        return new GuzzleClient([
+            'connect_timeout' => 5,
+            'timeout' => 20,
+        ]);
     }
 
     public function createPayment($api_key = null)
@@ -180,7 +186,16 @@ class MultiSafePay extends Provider implements PaymentProviderContract
     {
         $multiSafepaySdk = $this->getClient();
         $transactionManager = $multiSafepaySdk->getTransactionManager();
-        return $transactionManager->get($payment->provider_id);
+
+        try {
+            return $transactionManager->get($payment->provider_id);
+        } catch (NetworkExceptionInterface) {
+            /**
+             * The MultiSafepay API now and then stalls on a single request.
+             * Ask once more before failing the webhook or the return.
+             */
+            return $transactionManager->get($payment->provider_id);
+        }
     }
 
     public function handleResponse(Payment $payment): PaymentStatusResponse
