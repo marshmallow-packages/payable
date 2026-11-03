@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   **MultiSafepay:** a webhook fetched the order twice: once for the status
+    and once more for the timestamps, consumer details and payment type. The
+    second call occasionally came back `Unauthorized - Client info: ERR_OTHER`
+    and turned a webhook whose status was already stored into a 500. The
+    order from the status call is now reused, so a webhook makes one call.
+
 ## [4.3.1] - 2026-09-17
 
 ### Fixed

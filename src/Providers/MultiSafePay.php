@@ -5,6 +5,7 @@ namespace Marshmallow\Payable\Providers;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Psr\Http\Client\ClientInterface;
 use MultiSafepay\ValueObject\Money;
 use MultiSafepay\ValueObject\UnitPrice;
 use Marshmallow\Payable\Models\Payment;
@@ -28,7 +29,16 @@ class MultiSafePay extends Provider implements PaymentProviderContract
     {
         $test_payment = config('payable.test_payments');
         $is_production = (!$test_payment);
-        return new \MultiSafepay\Sdk(config('payable.multisafepay.key'), $is_production);
+        return new \MultiSafepay\Sdk(config('payable.multisafepay.key'), $is_production, $this->httpClient());
+    }
+
+    /**
+     * The PSR-18 client the SDK talks to MultiSafepay with. Null lets the SDK
+     * discover one itself.
+     */
+    protected function httpClient(): ?ClientInterface
+    {
+        return null;
     }
 
     public function createPayment($api_key = null)
@@ -176,6 +186,15 @@ class MultiSafePay extends Provider implements PaymentProviderContract
     public function handleResponse(Payment $payment): PaymentStatusResponse
     {
         $payment_status = $this->getPaymentStatus($payment);
+
+        /**
+         * handleStatusResponse() reads the timestamps, consumer details and
+         * payment type from this same order right after. Keep it, so a
+         * webhook asks MultiSafepay once instead of twice; the second call
+         * occasionally came back "Unauthorized" and failed a webhook whose
+         * status had already been stored.
+         */
+        $this->payment_info_result = $payment_status;
         $status = $this->convertStatus($payment_status->getStatus());
         $paid_amount = intval($payment_status->getAmount());
         return new PaymentStatusResponse($status, $paid_amount);
