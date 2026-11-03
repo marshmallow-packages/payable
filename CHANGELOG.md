@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   **MultiSafepay:** a webhook fetched the order twice: once for the status
+    and once more for the timestamps, consumer details and payment type. The
+    second call occasionally came back `Unauthorized - Client info: ERR_OTHER`
+    and turned a webhook whose status was already stored into a 500. The
+    order from the status call is now reused, so a webhook makes one call.
+-   **MultiSafepay:** the SDK was left to discover its own HTTP client, which
+    waited out PHP's `default_socket_timeout` (60s) whenever the API stalled
+    and then failed the webhook with `Idle timeout reached`. The provider now
+    passes a Guzzle client (5s connect, 20s total) and asks once more when
+    reading an order hits a network error.
+
 ## [4.3.1] - 2026-09-17
 
 ### Fixed

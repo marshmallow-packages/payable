@@ -5,6 +5,9 @@ namespace Marshmallow\Payable\Providers;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use GuzzleHttp\Client as GuzzleClient;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Client\NetworkExceptionInterface;
 use MultiSafepay\ValueObject\Money;
 use MultiSafepay\ValueObject\UnitPrice;
 use Marshmallow\Payable\Models\Payment;
@@ -28,7 +31,20 @@ class MultiSafePay extends Provider implements PaymentProviderContract
     {
         $test_payment = config('payable.test_payments');
         $is_production = (!$test_payment);
-        return new \MultiSafepay\Sdk(config('payable.multisafepay.key'), $is_production);
+        return new \MultiSafepay\Sdk(config('payable.multisafepay.key'), $is_production, $this->httpClient());
+    }
+
+    /**
+     * The PSR-18 client the SDK talks to MultiSafepay with. Left to discovery
+     * the SDK got a client that waited out PHP's default_socket_timeout (60s)
+     * whenever the MultiSafepay API stalled, holding the webhook that long.
+     */
+    protected function httpClient(): ?ClientInterface
+    {
+        return new GuzzleClient([
+            'connect_timeout' => 5,
+            'timeout' => 20,
+        ]);
     }
 
     public function createPayment($api_key = null)
@@ -170,12 +186,30 @@ class MultiSafePay extends Provider implements PaymentProviderContract
     {
         $multiSafepaySdk = $this->getClient();
         $transactionManager = $multiSafepaySdk->getTransactionManager();
-        return $transactionManager->get($payment->provider_id);
+
+        try {
+            return $transactionManager->get($payment->provider_id);
+        } catch (NetworkExceptionInterface) {
+            /**
+             * The MultiSafepay API now and then stalls on a single request.
+             * Ask once more before failing the webhook or the return.
+             */
+            return $transactionManager->get($payment->provider_id);
+        }
     }
 
     public function handleResponse(Payment $payment): PaymentStatusResponse
     {
         $payment_status = $this->getPaymentStatus($payment);
+
+        /**
+         * handleStatusResponse() reads the timestamps, consumer details and
+         * payment type from this same order right after. Keep it, so a
+         * webhook asks MultiSafepay once instead of twice; the second call
+         * occasionally came back "Unauthorized" and failed a webhook whose
+         * status had already been stored.
+         */
+        $this->payment_info_result = $payment_status;
         $status = $this->convertStatus($payment_status->getStatus());
         $paid_amount = intval($payment_status->getAmount());
         return new PaymentStatusResponse($status, $paid_amount);
