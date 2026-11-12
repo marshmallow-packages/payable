@@ -24,7 +24,7 @@
     "minimum-stability": "dev",
     "require": {
         "php": "^8.2",
-        "mollie/laravel-mollie": "^4.0",
+        "mollie/laravel-mollie": "^4.0 || ^5.0",
         "marshmallow/sluggable": "^1.4",
         "http-interop/http-factory-guzzle": "^1.2.0",
         "guzzlehttp/guzzle": "^7.0",
